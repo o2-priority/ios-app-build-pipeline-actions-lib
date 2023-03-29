@@ -1,0 +1,324 @@
+import Foundation
+import XcodeProj
+import PathKit
+import ArgumentParser
+
+public protocol XcodeServiceProtocol {
+    func getAppVersion(xcodeProjPath: Path, target: String, configuration: String) throws -> String
+    func getBuildNumber(xcodeProjPath: Path, target: String, configuration: String) throws -> Int
+    func setBuildNumber(_: Int, xcodeProjPath: Path, target: String) throws
+    func test<T>(
+        schemeLocation: XcodeService.SchemeLocation,
+        scheme: String,
+        destination: String,
+        codeCoverageTarget: String,
+        reportOutputDir: URL,
+        textOutputStream: inout T
+    ) async throws where T : TextOutputStream
+    func build<T>(
+        schemeLocation: XcodeService.SchemeLocation,
+        scheme: String,
+        destination: String,
+        textOutputStream: inout T
+    ) async throws where T : TextOutputStream
+    func archive<T>(
+        schemeLocation: XcodeService.SchemeLocation,
+        scheme: String,
+        destination: String,
+        sdk: String,
+        archivePath: Path,
+        textOutputStream: inout T
+    ) async throws where T : TextOutputStream
+    func writeExportOptionsPlist(_ exportOptions: XcodeBuildExportOptions, exportOptionsPlist: Path) throws
+    func exportArchive<T>(
+        archivePath: Path,
+        exportPath: Path,
+        exportOptionsPlist: Path,
+        textOutputStream: inout T
+    ) async throws where T : TextOutputStream
+    func uploadPackage<T>(
+        ipaPath: Path,
+        appAppleId: String,
+        bundleVersion: String,
+        bundleShortVersion: String,
+        bundleId: String,
+        auth: XcodeService.ApplicationLoaderAuth,
+        textOutputStream: inout T
+    ) async throws where T : TextOutputStream
+}
+
+/**
+ Resources used for implementation:
+ Technical Note TN2339
+ Building from the Command Line with Xcode FAQ
+ https://developer.apple.com/library/archive/technotes/tn2339/_index.html#//apple_ref/doc/uid/DTS40014588-CH1-HOW_DO_I_BUILD_MY_PROJECTS_FROM_THE_COMMAND_LINE_
+ */
+public final class XcodeService: XcodeServiceProtocol {
+    
+    let zsh: CommandServiceProtocol
+    
+    public init(commandService: CommandServiceProtocol) {
+        zsh = commandService
+    }
+    
+    public func getAppVersion(xcodeProjPath: Path, target: String, configuration: String) throws -> String {
+        let xcodeproj = try XcodeProj(path: xcodeProjPath)
+        guard let target = xcodeproj.pbxproj.nativeTargets
+            .first(where: { $0.name == target })
+        else {
+            throw ReleaseError.targetNotFound
+        }
+        guard let buildConfiguration = target.buildConfigurationList?.configuration(name: configuration)
+        else {
+            throw ReleaseError.buildConfigurationNotFound
+        }
+        guard let appVersion = buildConfiguration.buildSettings["MARKETING_VERSION"] as? String else {
+            throw ReleaseError.appVersionNotFound
+        }
+        return appVersion
+    }
+    
+    public func getBuildNumber(xcodeProjPath: Path, target: String, configuration: String) throws -> Int {
+        let xcodeproj = try XcodeProj(path: xcodeProjPath)
+        guard let target = xcodeproj.pbxproj.nativeTargets
+            .first(where: { $0.name == target })
+        else {
+            throw ReleaseError.targetNotFound
+        }
+        guard let buildConfiguration = target.buildConfigurationList?.configuration(name: configuration)
+        else {
+            throw ReleaseError.buildConfigurationNotFound
+        }
+        guard let buildNumberString = buildConfiguration.buildSettings["CURRENT_PROJECT_VERSION"] as? String else {
+            throw ReleaseError.buildNumberNotFound
+        }
+        guard let buildNumber = Int(buildNumberString) else {
+            print(buildNumberString)
+            throw ReleaseError.buildNumberNotInt
+        }
+        return buildNumber
+    }
+    
+    public func setBuildNumber(_ buildNumber: Int, xcodeProjPath: Path, target: String) throws {
+        let xcodeproj = try XcodeProj(path: xcodeProjPath)
+        guard let target = xcodeproj.pbxproj.nativeTargets
+            .first(where: { $0.name == target })
+        else {
+            throw ReleaseError.targetNotFound
+        }
+        try target.buildConfigurationList?.buildConfigurations.forEach { buildConfiguration in
+            buildConfiguration.buildSettings["CURRENT_PROJECT_VERSION"] = buildNumber
+            try xcodeproj.write(path: xcodeProjPath)
+        }
+    }
+    
+    public func test<T>(
+        schemeLocation: XcodeService.SchemeLocation,
+        scheme: String,
+        destination: String,
+        codeCoverageTarget: String,
+        reportOutputDir: URL,
+        textOutputStream: inout T
+    ) async throws where T : TextOutputStream
+    {
+        let resultBundlePath = reportOutputDir.appendingPathComponent("\(scheme)-TestResults").path
+        let xcodebuildTestCommand = XcodebuildCommandBuilder()
+            .action("test", value: schemeLocation.xcodeBuildArgument)
+            .argument("scheme", value: scheme)
+            .argument("destination", value: destination)
+            .argument("resultBundlePath", value: resultBundlePath)
+            .build()
+        try await zsh.run(xcodebuildTestCommand, textOutputStream: &textOutputStream)
+        //TODO: Works locally but not on Bitrise `zsh:1: command not found: xchtmlreport`
+//        try await zsh.run("xchtmlreport -r \(resultBundlePath)", textOutputStream: &textOutputStream)
+        let codeCovOutput: String = try zsh.run("xcrun xccov view --report --only-targets --json \(resultBundlePath).xcresult", textOutputStream: &textOutputStream)
+        let codeCoverageReport = codeCovOutput
+            .components(separatedBy: "\n")
+            .compactMap { $0.data(using: .utf8) }
+            .compactMap { data in
+                try? JSONDecoder().decode([XccovViewReportOnlyTargetsItem].self, from: data)
+            }
+            .flatMap { $0 }
+        // Output CodeCoveragePercentage.json
+        if let codeCoverage = codeCoverageReport.filter({ item in
+            item.name == codeCoverageTarget
+        }).first.map({ item in
+            CodeCoverage(lineRate: item.lineCoverage)
+        }) {
+            try JSONEncoder().encode(codeCoverage).write(to: reportOutputDir.appendingPathComponent("CodeCoveragePercentage.json"))
+        } else {
+            print("No code coverage found for \(codeCoverageTarget)", to: &textOutputStream)
+        }
+        // Generate code coverage in cobertura XML format
+        try await zsh.run("xcrun xccov view --report --json \(resultBundlePath).xcresult > coverage.json", currentDirectory: reportOutputDir, textOutputStream: &textOutputStream)
+        try await zsh.run("xcc generate coverage.json CodeCoverageXML cobertura-xml", currentDirectory: reportOutputDir, textOutputStream: &textOutputStream)
+    }
+    
+    public func build<T>(
+        schemeLocation: XcodeService.SchemeLocation,
+        scheme: String,
+        destination: String,
+        textOutputStream: inout T
+    ) async throws where T : TextOutputStream
+    {
+        let xcodebuildCommand = XcodebuildCommandBuilder()
+            .action("build", value: schemeLocation.xcodeBuildArgument)
+            .argument("scheme", value: scheme)
+            .argument("destination", value: destination)
+            .build()
+        try await zsh.run(xcodebuildCommand, textOutputStream: &textOutputStream)
+    }
+    
+    public func archive<T>(
+        schemeLocation: XcodeService.SchemeLocation,
+        scheme: String,
+        destination: String,
+        sdk: String,
+        archivePath: Path,
+        textOutputStream: inout T
+    ) async throws where T : TextOutputStream
+    {
+        let xcodebuildArchiveCommand = XcodebuildCommandBuilder()
+            .action("archive", value: schemeLocation.xcodeBuildArgument)
+            .argument("scheme", value: scheme)
+            .argument("destination", value: destination)
+            .argument("sdk", value: sdk)
+            .argument("archivePath", value: archivePath.string)
+            .build()
+        try await zsh.run(xcodebuildArchiveCommand, textOutputStream: &textOutputStream)
+    }
+    
+    public func writeExportOptionsPlist(_ exportOptions: XcodeBuildExportOptions, exportOptionsPlist: Path) throws {
+        try PropertyListEncoder()
+            .encode(exportOptions)
+            .write(to: exportOptionsPlist.url)
+    }
+    
+    public func exportArchive<T>(
+        archivePath: Path,
+        exportPath: Path,
+        exportOptionsPlist: Path,
+        textOutputStream: inout T
+    ) async throws where T : TextOutputStream
+    {
+        let xcodebuildExportArchiveCommand = XcodebuildCommandBuilder()
+            .flag("exportArchive")
+            .argument("archivePath", value: archivePath.string)
+            .argument("exportPath", value: exportPath.string)
+            .argument("exportOptionsPlist", value: exportOptionsPlist.string)
+            .build()
+        try await zsh.run(xcodebuildExportArchiveCommand, textOutputStream: &textOutputStream)
+    }
+    
+    public func uploadPackage<T>(
+        ipaPath: Path,
+        appAppleId: String,
+        bundleVersion: String,
+        bundleShortVersion: String,
+        bundleId: String,
+        auth: XcodeService.ApplicationLoaderAuth,
+        textOutputStream: inout T
+    ) async throws where T : TextOutputStream
+    {
+        print("Uploading ipa using Application Loader...", to: &textOutputStream)
+        try await zsh.run("xcrun altool --upload-package \(ipaPath) --type ios --apple-id \(appAppleId) --bundle-version \(bundleVersion) --bundle-short-version-string \(bundleShortVersion) --bundle-id \(bundleId) \(auth.command)", textOutputStream: &textOutputStream)
+    }
+    
+    // MARK: Supporting Types
+    
+    public enum SchemeLocation: ExpressibleByArgument {
+        
+        case project(Path)
+        case workspace(Path)
+        
+        public init?(argument: String) {
+            if argument.hasSuffix(".xcworkspace") {
+                self = .workspace(Path(argument))
+            } else if argument.hasSuffix(".xcodeproj") {
+                self = .project(Path(argument))
+            } else {
+                return nil
+            }
+        }
+        
+        var path: Path {
+            switch self {
+            case .project(let path), .workspace(let path):
+                return path
+            }
+        }
+        
+        var xcodeBuildArgument: String {
+            switch self {
+            case .project(let project):
+                return "-project \(project.string)"
+            case .workspace(let workspace):
+                return "-workspace \(workspace.string)"
+            }
+        }
+    }
+    
+    public enum ApplicationLoaderAuth {
+        public struct Basic {
+            let username: String
+            let password: String
+        }
+        public struct Token {
+            let apiKey: String
+            let apiIssuer: String
+        }
+        case basic(Basic)
+        case token(Token)
+        
+        var command: String {
+            switch self {
+            case .basic(let auth):
+                return "-u \(auth.username) -p \(auth.password)"
+            case .token(let auth):
+                return "--apiKey \(auth.apiKey) --apiIssuer \(auth.apiIssuer)"
+            }
+        }
+    }
+    
+    struct XccovViewReportOnlyTargetsItem: Codable {
+        let lineCoverage: Double
+        let name: String
+    }
+    
+    struct CodeCoverage: Codable {
+        let lineRate: Double
+        
+        enum CodingKeys: String, CodingKey {
+            case lineRate = "line-rate"
+        }
+    }
+    
+    final class XcodebuildCommandBuilder {
+        
+        private var action: String?
+        private var options: [String] = []
+        
+        func action(_ name: String, value: String) -> Self {
+            action = "\(name) \(value) "
+            return self
+        }
+        
+        func argument(_ name: String, value: String) -> Self {
+            options.append("-\(name) \(value)")
+            return self
+        }
+        
+        func flag(_ name: String) -> Self {
+            options.append("-\(name)")
+            return self
+        }
+        
+        func build() -> String {
+            "set -o pipefail && " //Required to make xcbeautify return status to equal the last command to exit with a non-zero status, or zero if all commands exit successfully.
+                .appending("xcodebuild ")
+                .appending(action ?? "")
+                .appending(options.joined(separator: " "))
+                .appending(" | xcbeautify")
+        }
+    }
+}
