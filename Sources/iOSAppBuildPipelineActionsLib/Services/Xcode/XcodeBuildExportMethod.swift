@@ -7,6 +7,19 @@ public enum XcodeBuildExportMethod: String, CaseIterable, ExpressibleByArgument 
     case adhoc = "ad-hoc"
     case appstore = "app-store"
     
+    public var bitriseWorkflowIdComponent: String {
+        switch self {
+        case .development:
+            return "development"
+        case .enterprise:
+            return "enterprise"
+        case .adhoc:
+            return "adhoc"
+        case .appstore:
+            return "appstore"
+        }
+    }
+    
     public var displayText: String {
         switch self {
         case .development:
@@ -17,6 +30,17 @@ public enum XcodeBuildExportMethod: String, CaseIterable, ExpressibleByArgument 
             return "Ad hoc"
         case .appstore:
             return "Appstore"
+        }
+    }
+    
+    public var installServiceProviderName: String {
+        switch self {
+        case .development:
+            return "Local"
+        case .enterprise, .adhoc:
+            return "AppCenter"
+        case .appstore:
+            return "TestFlight"
         }
     }
     
