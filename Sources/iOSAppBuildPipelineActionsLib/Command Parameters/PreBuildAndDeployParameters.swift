@@ -12,7 +12,8 @@ public struct PreBuildAndDeployParameters {
     let target: String
     let exportMethod: XcodeBuildExportMethod
     let appFlavours: [AppFlavour]
-    let simulatorName: String
+    let simulatorRuntimes: [String]
+    let preferredSimulatorNames: [String]
     let schemeForTest: String
     let appStoreReleaseConfiguration: String
     let buildNumberOption: BuildNumberOption
@@ -27,7 +28,8 @@ public struct PreBuildAndDeployParameters {
                 target: String,
                 exportMethod: XcodeBuildExportMethod,
                 appFlavours: [AppFlavour],
-                simulatorName: String,
+                simulatorRuntimes: [String],
+                preferredSimulatorNames: [String],
                 schemeForTest: String,
                 appStoreReleaseConfiguration: String,
                 buildNumberOption: BuildNumberOption,
@@ -42,7 +44,8 @@ public struct PreBuildAndDeployParameters {
         self.target = target
         self.exportMethod = exportMethod
         self.appFlavours = appFlavours
-        self.simulatorName = simulatorName
+        self.simulatorRuntimes = simulatorRuntimes
+        self.preferredSimulatorNames = preferredSimulatorNames
         self.schemeForTest = schemeForTest
         self.appStoreReleaseConfiguration = appStoreReleaseConfiguration
         self.buildNumberOption = buildNumberOption

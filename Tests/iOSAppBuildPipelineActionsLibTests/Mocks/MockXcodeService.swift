@@ -5,6 +5,10 @@ import PathKit
 
 final class MockXcodeService: XcodeServiceProtocol {
     
+    func getSimulatorIds<T>(simulatorRuntimes: [XcodeService.SimulatorRuntime], preferredSimulatorNames: [String], textOutputStream: inout T) throws -> [XcodeService.SimulatorInfo] where T : TextOutputStream {
+        return []
+    }
+    
     func getAppVersion(xcodeProjPath: Path, target: String, configuration: String) throws -> String {
         ""
     }
@@ -17,7 +21,7 @@ final class MockXcodeService: XcodeServiceProtocol {
         
     }
     
-    func test<T>(schemeLocation: XcodeService.SchemeLocation, scheme: String, destination: String, codeCoverageTarget: String, reportOutputDir: URL, textOutputStream: inout T) async throws where T : TextOutputStream {
+    func test<T>(schemeLocation: XcodeService.SchemeLocation, scheme: String, destination: String, simulatorRuntime: String, codeCoverageTarget: String?, reportOutputDir: URL, textOutputStream: inout T) async throws where T : TextOutputStream {
         
     }
     

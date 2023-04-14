@@ -4,6 +4,11 @@ import PathKit
 import ArgumentParser
 
 public protocol XcodeServiceProtocol {
+    func getSimulatorIds<T>(
+        simulatorRuntimes: [XcodeService.SimulatorRuntime],
+        preferredSimulatorNames: [String],
+        textOutputStream: inout T)
+    throws -> [XcodeService.SimulatorInfo] where T : TextOutputStream
     func getAppVersion(xcodeProjPath: Path, target: String, configuration: String) throws -> String
     func getBuildNumber(xcodeProjPath: Path, target: String, configuration: String) throws -> Int
     func setBuildNumber(_: Int, xcodeProjPath: Path, target: String) throws
@@ -11,7 +16,8 @@ public protocol XcodeServiceProtocol {
         schemeLocation: XcodeService.SchemeLocation,
         scheme: String,
         destination: String,
-        codeCoverageTarget: String,
+        simulatorRuntime: String,
+        codeCoverageTarget: String?,
         reportOutputDir: URL,
         textOutputStream: inout T
     ) async throws where T : TextOutputStream
@@ -55,10 +61,53 @@ public protocol XcodeServiceProtocol {
  */
 public final class XcodeService: XcodeServiceProtocol {
     
+    enum Error: Swift.Error {
+        case noSimulatorsInstalled
+        case unsupportedPlatform(String)
+        case unsupportedVersion(String)
+    }
+    
+    public typealias SimulatorRuntime = String
+    
     let zsh: CommandServiceProtocol
     
     public init(commandService: CommandServiceProtocol) {
         zsh = commandService
+    }
+    
+    public func getSimulatorIds<T>(
+        simulatorRuntimes: [SimulatorRuntime],
+        preferredSimulatorNames: [String],
+        textOutputStream: inout T)
+    throws -> [SimulatorInfo] where T : TextOutputStream
+    {
+        let jsonDecoder = JSONDecoder()
+        return try simulatorRuntimes.map { simulatorRuntime in
+            let simulatorRuntimeComponents = simulatorRuntime.components(separatedBy: "-")
+            let supportedPlatforms = ["iOS"]
+            guard !simulatorRuntimeComponents.isEmpty, supportedPlatforms.contains(simulatorRuntimeComponents[0]) else {
+                throw Error.unsupportedPlatform("\(simulatorRuntimeComponents[0]) is not in the list of supported platforms: \(supportedPlatforms.joined(separator: ", ")).")
+            }
+            guard !simulatorRuntimeComponents.dropFirst().compactMap(Int.init).isEmpty else {
+                throw Error.unsupportedVersion("Non-integer version '\(simulatorRuntimeComponents.dropFirst().joined(separator: "-"))' is not supported.")
+            }
+            let (xcrun_simctl_list_json, _) = try self.zsh.run("xcrun simctl list --json", textOutputStream: &textOutputStream, pipeStdErrSeparately: true)
+            let xcrun_simctl_list = try jsonDecoder.decode(XcrunSimctlList.self, from: xcrun_simctl_list_json)
+            guard let devices = xcrun_simctl_list.devices["com.apple.CoreSimulator.SimRuntime.\(simulatorRuntime)"], let firstDevice = devices.first else {
+                throw Error.noSimulatorsInstalled
+            }
+            let devicesByName = Dictionary(uniqueKeysWithValues: zip(devices.map { $0.name }, devices))
+            for preferredSimulatorName in preferredSimulatorNames {
+                if let device = devicesByName[preferredSimulatorName] {
+                    print("'\(preferredSimulatorName)' found for \(simulatorRuntime).", to: &textOutputStream)
+                    return .init(udid: device.udid, simulatorRuntime: simulatorRuntime)
+                } else {
+                    print("'\(preferredSimulatorName)' not found for \(simulatorRuntime).", to: &textOutputStream)
+                }
+            }
+            print("No preferred simulator names found, using first device found '\(firstDevice.name)' for \(simulatorRuntime).", to: &textOutputStream)
+            return .init(udid: firstDevice.udid, simulatorRuntime: simulatorRuntime)
+        }
     }
     
     public func getAppVersion(xcodeProjPath: Path, target: String, configuration: String) throws -> String {
@@ -116,12 +165,13 @@ public final class XcodeService: XcodeServiceProtocol {
         schemeLocation: XcodeService.SchemeLocation,
         scheme: String,
         destination: String,
-        codeCoverageTarget: String,
+        simulatorRuntime: String,
+        codeCoverageTarget: String?,
         reportOutputDir: URL,
         textOutputStream: inout T
     ) async throws where T : TextOutputStream
     {
-        let resultBundlePath = reportOutputDir.appendingPathComponent("\(scheme)-TestResults").path
+        let resultBundlePath = reportOutputDir.appendingPathComponent("\(scheme)-\(simulatorRuntime)-TestResults").path
         let xcodebuildTestCommand = XcodebuildCommandBuilder()
             .action("test", value: schemeLocation.xcodeBuildArgument)
             .argument("scheme", value: scheme)
@@ -131,6 +181,10 @@ public final class XcodeService: XcodeServiceProtocol {
         try await zsh.run(xcodebuildTestCommand, textOutputStream: &textOutputStream)
         //TODO: Works locally but not on Bitrise `zsh:1: command not found: xchtmlreport`
 //        try await zsh.run("xchtmlreport -r \(resultBundlePath)", textOutputStream: &textOutputStream)
+        guard let codeCoverageTarget else {
+            print("No code coverage target specified.", to: &textOutputStream)
+            return
+        }
         let codeCovOutput: String = try zsh.run("xcrun xccov view --report --only-targets --json \(resultBundlePath).xcresult", textOutputStream: &textOutputStream)
         let codeCoverageReport = codeCovOutput
             .components(separatedBy: "\n")
@@ -226,6 +280,11 @@ public final class XcodeService: XcodeServiceProtocol {
     
     // MARK: Supporting Types
     
+    public struct SimulatorInfo: Equatable {
+        let udid: UUID
+        let simulatorRuntime: String
+    }
+    
     public enum SchemeLocation: ExpressibleByArgument {
         
         case project(Path)
@@ -283,6 +342,22 @@ public final class XcodeService: XcodeServiceProtocol {
     struct XccovViewReportOnlyTargetsItem: Codable {
         let lineCoverage: Double
         let name: String
+    }
+    
+    // MARK: xcrun simctl list --json
+    struct XcrunSimctlList: Codable {
+        typealias SimRuntime = String
+        struct SimDevice: Codable {
+            let dataPath: String
+            let dataPathSize: Int
+            let deviceTypeIdentifier: String
+            let isAvailable: Bool
+            let logPath: String
+            let name: String
+            let state: String
+            let udid: UUID
+        }
+        let devices: [SimRuntime: [SimDevice]]
     }
     
     struct CodeCoverage: Codable {

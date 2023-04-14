@@ -33,6 +33,9 @@ let package = Package(
             dependencies: [
                 .product(name: "Difference", package: "Difference"),
                 "iOSAppBuildPipelineActionsLib"
+            ],
+            resources: [
+                .copy("Stubs")
             ]
         )
     ]
