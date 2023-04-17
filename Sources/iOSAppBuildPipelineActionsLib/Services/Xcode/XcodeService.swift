@@ -61,10 +61,21 @@ public protocol XcodeServiceProtocol {
  */
 public final class XcodeService: XcodeServiceProtocol {
     
-    enum Error: Swift.Error {
-        case noSimulatorsInstalled
+    enum Error: Swift.Error, LocalizedError {
+        case noSimulatorsForRuntime(String)
         case unsupportedPlatform(String)
         case unsupportedVersion(String)
+        
+        var errorDescription: String? {
+            switch self {
+            case let .noSimulatorsForRuntime(devicesKey):
+                return "No simulators found under devices key '\(devicesKey)'."
+            case let .unsupportedPlatform(platform):
+                return "Unsupported platform '\(platform)'."
+            case let .unsupportedVersion(version):
+                return "Unsupported version '\(version)'."
+            }
+        }
     }
     
     public typealias SimulatorRuntime = String
@@ -82,7 +93,8 @@ public final class XcodeService: XcodeServiceProtocol {
     throws -> [SimulatorInfo] where T : TextOutputStream
     {
         let jsonDecoder = JSONDecoder()
-        return try simulatorRuntimes.map { simulatorRuntime in
+        return try simulatorRuntimes.enumerated().map { (index, simulatorRuntime) in
+            print("Searching for \(simulatorRuntime) simulator runtime... [\(index + 1)/\(simulatorRuntimes.count)]", to: &textOutputStream)
             let simulatorRuntimeComponents = simulatorRuntime.components(separatedBy: "-")
             let supportedPlatforms = ["iOS"]
             guard !simulatorRuntimeComponents.isEmpty, supportedPlatforms.contains(simulatorRuntimeComponents[0]) else {
@@ -91,12 +103,18 @@ public final class XcodeService: XcodeServiceProtocol {
             guard !simulatorRuntimeComponents.dropFirst().compactMap(Int.init).isEmpty else {
                 throw Error.unsupportedVersion("Non-integer version '\(simulatorRuntimeComponents.dropFirst().joined(separator: "-"))' is not supported.")
             }
+            print("Getting list of simulators as JSON...", to: &textOutputStream)
             let (xcrun_simctl_list_json, _) = try self.zsh.run("xcrun simctl list --json", textOutputStream: &textOutputStream, pipeStdErrSeparately: true)
+            print("Decoding JSON...", to: &textOutputStream)
             let xcrun_simctl_list = try jsonDecoder.decode(XcrunSimctlList.self, from: xcrun_simctl_list_json)
-            guard let devices = xcrun_simctl_list.devices["com.apple.CoreSimulator.SimRuntime.\(simulatorRuntime)"], let firstDevice = devices.first else {
-                throw Error.noSimulatorsInstalled
+            dump(xcrun_simctl_list)
+            let devicesKey = "com.apple.CoreSimulator.SimRuntime.\(simulatorRuntime)"
+            print("Searching for devices under '\(devicesKey)'...", to: &textOutputStream)
+            guard let devices = xcrun_simctl_list.devices[devicesKey], let firstDevice = devices.first else {
+                throw Error.noSimulatorsForRuntime(devicesKey)
             }
             let devicesByName = Dictionary(uniqueKeysWithValues: zip(devices.map { $0.name }, devices))
+            print("Searching for devices with preferred name(s)...", to: &textOutputStream)
             for preferredSimulatorName in preferredSimulatorNames {
                 if let device = devicesByName[preferredSimulatorName] {
                     print("'\(preferredSimulatorName)' found for \(simulatorRuntime).", to: &textOutputStream)

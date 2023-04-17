@@ -4,10 +4,10 @@ import PathKit
 
 @testable import iOSAppBuildPipelineActionsLib
 
-final class ActionsTests: XCTestCase {
+final class BuildAndDeployTests: XCTestCase {
     
     // SUT
-    var actions: Actions<MockTextOutputStream>!
+    var actions: BuildAndDeploy<MockTextOutputStream>!
     
     // SUT Dependencies
     var appCenterAPI: MockAppCenterAPI!
@@ -41,7 +41,7 @@ final class ActionsTests: XCTestCase {
         processInfoService = MockProcessInfoService()
         slackAPI = MockSlackAPI()
         xcodeService = MockXcodeService()
-        actions = Actions(appCenterAPI: appCenterAPI, atlassianAPI: atlassianAPI, bitriseAPI: bitriseAPI, buildNumberAPI: buildNumberAPI, fileManagerService: fileManagerService, gitHubAPI: gitHubAPI, gitService: gitService, processInfoService: processInfoService, slackAPI: slackAPI, xcodeService: xcodeService, textOutputStream: textOutputStream, isCI: false)
+        actions = BuildAndDeploy(appCenterAPI: appCenterAPI, atlassianAPI: atlassianAPI, bitriseAPI: bitriseAPI, buildNumberAPI: buildNumberAPI, fileManagerService: fileManagerService, gitHubAPI: gitHubAPI, gitService: gitService, processInfoService: processInfoService, slackAPI: slackAPI, xcodeService: xcodeService, textOutputStream: textOutputStream, isCI: false)
     }
     
     func test_prepareRelease() async throws {

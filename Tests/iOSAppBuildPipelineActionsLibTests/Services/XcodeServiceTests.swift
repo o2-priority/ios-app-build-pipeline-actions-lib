@@ -23,7 +23,9 @@ final class XcodeServiceTests: XCTestCase {
         XCTAssertThrowsError(try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream))
         
         //Then
-        XCTAssertEqual(mockTextOutputStream.writes, [])
+        XCTAssertEqual(mockTextOutputStream.writes, [
+            "", "Searching for macOS-16-4 simulator runtime... [1/1]", "\n"
+        ])
     }
     
     func test_getSimulatorIds_unsupportedVersion() throws {
@@ -34,7 +36,9 @@ final class XcodeServiceTests: XCTestCase {
         XCTAssertThrowsError(try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream))
         
         //Then
-        XCTAssertEqual(mockTextOutputStream.writes, [])
+        XCTAssertEqual(mockTextOutputStream.writes, [
+            "", "Searching for iOS-A simulator runtime... [1/1]", "\n"
+        ])
     }
     
     func test_getSimulatorIds_noInstalledSimulatorRuntimes() throws {
@@ -54,7 +58,12 @@ final class XcodeServiceTests: XCTestCase {
         XCTAssertThrowsError(try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream))
         
         //Then
-        XCTAssertEqual(mockTextOutputStream.writes, [])
+        XCTAssertEqual(mockTextOutputStream.writes, [
+            "", "Searching for iOS-16-4 simulator runtime... [1/1]", "\n",
+            "", "Getting list of simulators as JSON...", "\n",
+            "", "Decoding JSON...", "\n",
+            "", "Searching for devices under \'com.apple.CoreSimulator.SimRuntime.iOS-16-4\'...", "\n"
+        ])
     }
     
     func test_getSimulatorIds_noInstalledSimulatorDevices() throws {
@@ -76,7 +85,12 @@ final class XcodeServiceTests: XCTestCase {
         XCTAssertThrowsError(try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream))
         
         //Then
-        XCTAssertEqual(mockTextOutputStream.writes, [])
+        XCTAssertEqual(mockTextOutputStream.writes, [
+            "", "Searching for iOS-16-4 simulator runtime... [1/1]", "\n",
+            "", "Getting list of simulators as JSON...", "\n",
+            "", "Decoding JSON...", "\n",
+            "", "Searching for devices under \'com.apple.CoreSimulator.SimRuntime.iOS-16-4\'...", "\n"
+        ])
     }
     
     func test_getSimulatorIds_noMatchingSimulatorRuntimes() throws {
@@ -109,7 +123,12 @@ final class XcodeServiceTests: XCTestCase {
         XCTAssertThrowsError(try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream))
         
         //Then
-        XCTAssertEqual(mockTextOutputStream.writes, [])
+        XCTAssertEqual(mockTextOutputStream.writes, [
+            "", "Searching for iOS-16-4 simulator runtime... [1/1]", "\n",
+            "", "Getting list of simulators as JSON...", "\n",
+            "", "Decoding JSON...", "\n",
+            "", "Searching for devices under \'com.apple.CoreSimulator.SimRuntime.iOS-16-4\'...", "\n"
+        ])
     }
     
     func test_getSimulatorIds_singleSimulatorRuntime_noPreferredSimulatorName() throws {
@@ -129,7 +148,12 @@ final class XcodeServiceTests: XCTestCase {
             .init(udid: .init(uuidString: "A0492998-4FE2-4B60-8D39-46C1F1A1D2D1")!, simulatorRuntime: "iOS-16-4")
         ])
         XCTAssertEqual(mockTextOutputStream.writes, [
-            "", "No preferred simulator names found, using first device found 'iPhone SE (3rd generation)' for iOS-16-4.", "\n"
+            "", "Searching for iOS-16-4 simulator runtime... [1/1]", "\n",
+            "", "Getting list of simulators as JSON...", "\n",
+            "", "Decoding JSON...", "\n",
+            "", "Searching for devices under \'com.apple.CoreSimulator.SimRuntime.iOS-16-4\'...", "\n",
+            "", "Searching for devices with preferred name(s)...", "\n",
+            "", "No preferred simulator names found, using first device found \'iPhone SE (3rd generation)\' for iOS-16-4.", "\n"
         ])
     }
 
@@ -151,8 +175,18 @@ final class XcodeServiceTests: XCTestCase {
             .init(udid: .init(uuidString: "A0492998-4FE2-4B60-8D39-46C1F1A1D2D1")!, simulatorRuntime: "iOS-16-4")
         ])
         XCTAssertEqual(mockTextOutputStream.writes, [
-            "", "No preferred simulator names found, using first device found 'iPhone SE (1st generation)' for iOS-15-0.", "\n",
-            "", "No preferred simulator names found, using first device found 'iPhone SE (3rd generation)' for iOS-16-4.", "\n"
+            "", "Searching for iOS-15-0 simulator runtime... [1/2]", "\n",
+            "", "Getting list of simulators as JSON...", "\n",
+            "", "Decoding JSON...", "\n",
+            "", "Searching for devices under \'com.apple.CoreSimulator.SimRuntime.iOS-15-0\'...", "\n",
+            "", "Searching for devices with preferred name(s)...", "\n",
+            "", "No preferred simulator names found, using first device found \'iPhone SE (1st generation)\' for iOS-15-0.", "\n",
+            "", "Searching for iOS-16-4 simulator runtime... [2/2]", "\n",
+            "", "Getting list of simulators as JSON...", "\n",
+            "", "Decoding JSON...", "\n",
+            "", "Searching for devices under \'com.apple.CoreSimulator.SimRuntime.iOS-16-4\'...", "\n",
+            "", "Searching for devices with preferred name(s)...", "\n",
+            "", "No preferred simulator names found, using first device found \'iPhone SE (3rd generation)\' for iOS-16-4.", "\n"
         ])
     }
     
@@ -175,9 +209,19 @@ final class XcodeServiceTests: XCTestCase {
             .init(udid: .init(uuidString: "BE99020D-5218-42FC-9F25-690559B6227D")!, simulatorRuntime: "iOS-16-4")
         ])
         XCTAssertEqual(mockTextOutputStream.writes, [
-            "", "'iPhone 14' not found for iOS-15-0.", "\n",
-            "", "No preferred simulator names found, using first device found 'iPhone SE (1st generation)' for iOS-15-0.", "\n",
-            "", "'iPhone 14' found for iOS-16-4.", "\n"
+            "", "Searching for iOS-15-0 simulator runtime... [1/2]", "\n",
+            "", "Getting list of simulators as JSON...", "\n",
+            "", "Decoding JSON...", "\n",
+            "", "Searching for devices under \'com.apple.CoreSimulator.SimRuntime.iOS-15-0\'...", "\n",
+            "", "Searching for devices with preferred name(s)...", "\n",
+            "", "\'iPhone 14\' not found for iOS-15-0.", "\n",
+            "", "No preferred simulator names found, using first device found \'iPhone SE (1st generation)\' for iOS-15-0.", "\n",
+            "", "Searching for iOS-16-4 simulator runtime... [2/2]", "\n",
+            "", "Getting list of simulators as JSON...", "\n",
+            "", "Decoding JSON...", "\n",
+            "", "Searching for devices under \'com.apple.CoreSimulator.SimRuntime.iOS-16-4\'...", "\n",
+            "", "Searching for devices with preferred name(s)...", "\n",
+            "", "\'iPhone 14\' found for iOS-16-4.", "\n"
         ])
     }
 }
