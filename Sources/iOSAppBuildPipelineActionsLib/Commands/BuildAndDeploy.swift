@@ -2,7 +2,7 @@ import Foundation
 import PathKit
 import ZIPFoundation
 
-public final class Actions<T>: NSObject where T: RedactableTextOutputStream {
+public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStream {
     
     private let appCenterAPI: AppCenterAPIProtocol
     private let atlassianAPI: AtlassianAPIProtocol
