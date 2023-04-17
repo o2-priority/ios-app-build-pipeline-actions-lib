@@ -50,28 +50,6 @@ public final class Actions<T>: NSObject where T: RedactableTextOutputStream {
         addObserver(self, forKeyPath: #keyPath(zipProgress.fractionCompleted), options: [.new], context: nil)
     }
     
-    public func test(_ input: TestParameters) async throws
-    {
-        print("Testing app...", to: &textOutputStream)
-        let simulatorIds = try xcodeService.getSimulatorIds(
-            simulatorRuntimes: input.simulatorRuntimes,
-            preferredSimulatorNames: input.preferredSimulatorNames,
-            textOutputStream: &textOutputStream)
-        var produceCodeCoverage = true
-        for simulatorInfo in simulatorIds {
-            try await xcodeService.test(
-                schemeLocation: input.schemeLocation,
-                scheme: input.scheme,
-                destination: #""platform=iOS Simulator,id=\#(simulatorInfo.udid.uuidString)""#,
-                simulatorRuntime: simulatorInfo.simulatorRuntime,
-                codeCoverageTarget: produceCodeCoverage ? input.codeCoverageTarget : nil,
-                reportOutputDir: input.reportOutputDir.url,
-                textOutputStream: &textOutputStream
-            )
-            produceCodeCoverage = false
-        }
-    }
-    
     public func preBuildAndDeploy(_ input: PreBuildAndDeployParameters, buildAndDeployParameters: BuildAndDeployParameters) async throws
     {
         let environment = processInfoService.environment
@@ -86,7 +64,7 @@ public final class Actions<T>: NSObject where T: RedactableTextOutputStream {
         
         // Run unit tests
         if !input.skipTest {
-            try await test(.init(
+            try await Test(xcodeService: xcodeService, textOutputStream: textOutputStream).test(.init(
                 schemeLocation: input.schemeLocation,
                 scheme: input.schemeForTest,
                 simulatorRuntimes: input.simulatorRuntimes,
