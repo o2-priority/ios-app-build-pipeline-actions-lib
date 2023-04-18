@@ -23,7 +23,7 @@ public final class GitService<T>: GitServiceProtocol where T: RedactableTextOutp
     }
     
     @discardableResult
-    private func git(_ command: String) throws -> String {
+    public func git(_ command: String) throws -> String {
         try zsh.run(#"git --git-dir="\#(repoDir)/.git" --work-tree=\#(repoDir) \#(command)"#, textOutputStream: &textOutputStream)
     }
     

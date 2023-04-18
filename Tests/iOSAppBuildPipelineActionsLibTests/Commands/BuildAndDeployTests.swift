@@ -7,7 +7,7 @@ import PathKit
 final class BuildAndDeployTests: XCTestCase {
     
     // SUT
-    var actions: BuildAndDeploy<MockTextOutputStream>!
+    var actions: BuildAndDeploy<MockRedactableTextOutputStream>!
     
     // SUT Dependencies
     var appCenterAPI: MockAppCenterAPI!
@@ -19,7 +19,7 @@ final class BuildAndDeployTests: XCTestCase {
     var gitHubAPI: MockGitHubAPI!
     var processInfoService: MockProcessInfoService!
     var slackAPI: MockSlackAPI!
-    var textOutputStream = MockTextOutputStream()
+    var textOutputStream = MockRedactableTextOutputStream()
     var xcodeService: MockXcodeService!
     
     let mock200Response = HTTPURLResponse(url: URL(string: "www.google.com")!, statusCode: 200, httpVersion: nil, headerFields: nil)!

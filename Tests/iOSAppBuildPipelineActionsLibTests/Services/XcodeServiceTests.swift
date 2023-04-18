@@ -7,11 +7,11 @@ final class XcodeServiceTests: XCTestCase {
     
     var sut: XcodeService!
     var mockCommandService: MockCommandService!
-    var mockTextOutputStream: MockTextOutputStream!
+    var mockTextOutputStream: MockRedactableTextOutputStream!
 
     override func setUpWithError() throws {
         mockCommandService = MockCommandService()
-        mockTextOutputStream = MockTextOutputStream()
+        mockTextOutputStream = MockRedactableTextOutputStream()
         sut = .init(commandService: mockCommandService)
     }
     

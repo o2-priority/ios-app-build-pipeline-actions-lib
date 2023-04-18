@@ -22,7 +22,7 @@ public final class StandardRedactedOutputStream: RedactableTextOutputStream {
     }
 }
 
-public class StandardErrorStream: TextOutputStream {
+public final class StandardErrorStream: TextOutputStream {
     public init() {}
     public func write(_ string: String) {
         FileHandle.standardError.write(Data(string.utf8))

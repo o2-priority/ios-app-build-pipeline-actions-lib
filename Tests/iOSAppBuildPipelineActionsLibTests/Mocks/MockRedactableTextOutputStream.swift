@@ -2,7 +2,7 @@ import Foundation
 
 @testable import iOSAppBuildPipelineActionsLib
 
-final class MockTextOutputStream: RedactableTextOutputStream {
+final class MockRedactableTextOutputStream: RedactableTextOutputStream {
     
     var writes: [String] = []
     

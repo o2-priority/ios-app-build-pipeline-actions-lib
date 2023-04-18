@@ -5,7 +5,7 @@ import XCTest
 
 final class HTTPServiceTests: XCTestCase {
     
-    typealias HTTPServiceForTesting = HTTPService<MockTextOutputStream>
+    typealias HTTPServiceForTesting = HTTPService<MockRedactableTextOutputStream>
     
     struct ExampleJSON: Codable {
         let value: String
@@ -13,7 +13,7 @@ final class HTTPServiceTests: XCTestCase {
     
     var httpService: HTTPServiceProtocol!
     var mockSession: MockURLSession!
-    var textOutputStream = MockTextOutputStream()
+    var textOutputStream = MockRedactableTextOutputStream()
     let mockGitHubPullRequestsJson = """
     [
         {

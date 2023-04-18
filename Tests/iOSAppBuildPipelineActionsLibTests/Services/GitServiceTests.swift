@@ -5,12 +5,12 @@ import XCTest
 
 class GitServiceTests: XCTestCase {
     
-    var gitService: GitService<MockTextOutputStream>!
+    var gitService: GitService<MockRedactableTextOutputStream>!
     var commandService: MockCommandService!
     
     override func setUp() {
         commandService = MockCommandService()
-        gitService = GitService(commandService: commandService, repoDir: "dir", textOutputStream: MockTextOutputStream())
+        gitService = GitService(commandService: commandService, repoDir: "dir", textOutputStream: MockRedactableTextOutputStream())
     }
     
     //MARK: fetchCurrentBranch tests
