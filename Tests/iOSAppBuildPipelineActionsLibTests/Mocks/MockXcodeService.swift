@@ -5,7 +5,7 @@ import PathKit
 
 final class MockXcodeService: XcodeServiceProtocol {
     
-    func getSimulatorIds<T>(simulatorRuntimes: [XcodeService.SimulatorRuntime], preferredSimulatorNames: [String], textOutputStream: inout T) throws -> [XcodeService.SimulatorInfo] where T : TextOutputStream {
+    func getSimulatorIds<T>(simulatorRuntimes: [XcodeService.SimulatorRuntime], preferredSimulatorNames: [String], textOutputStream: inout T, verbose: Bool) throws -> [XcodeService.SimulatorInfo] where T : TextOutputStream {
         return []
     }
     

@@ -20,7 +20,7 @@ final class XcodeServiceTests: XCTestCase {
         let simulatorRuntimes = ["macOS-16-4"]
         
         //When
-        XCTAssertThrowsError(try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream))
+        XCTAssertThrowsError(try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream, verbose: false))
         
         //Then
         XCTAssertEqual(mockTextOutputStream.writes, [
@@ -33,7 +33,7 @@ final class XcodeServiceTests: XCTestCase {
         let simulatorRuntimes = ["iOS-A"]
         
         //When
-        XCTAssertThrowsError(try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream))
+        XCTAssertThrowsError(try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream, verbose: false))
         
         //Then
         XCTAssertEqual(mockTextOutputStream.writes, [
@@ -55,7 +55,7 @@ final class XcodeServiceTests: XCTestCase {
         let simulatorRuntimes = ["iOS-16-4"]
         
         //When
-        XCTAssertThrowsError(try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream))
+        XCTAssertThrowsError(try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream, verbose: false))
         
         //Then
         XCTAssertEqual(mockTextOutputStream.writes, [
@@ -82,7 +82,7 @@ final class XcodeServiceTests: XCTestCase {
         let simulatorRuntimes = ["iOS-16-4"]
         
         //When
-        XCTAssertThrowsError(try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream))
+        XCTAssertThrowsError(try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream, verbose: false))
         
         //Then
         XCTAssertEqual(mockTextOutputStream.writes, [
@@ -120,7 +120,7 @@ final class XcodeServiceTests: XCTestCase {
         let simulatorRuntimes = ["iOS-16-4"]
         
         //When
-        XCTAssertThrowsError(try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream))
+        XCTAssertThrowsError(try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream, verbose: false))
         
         //Then
         XCTAssertEqual(mockTextOutputStream.writes, [
@@ -141,7 +141,7 @@ final class XcodeServiceTests: XCTestCase {
         let simulatorRuntimes = ["iOS-16-4"]
         
         //When
-        let simulatorIds = try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream)
+        let simulatorIds = try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream, verbose: false)
         
         //Then
         XCTAssertEqual(simulatorIds, [
@@ -167,7 +167,7 @@ final class XcodeServiceTests: XCTestCase {
         let simulatorRuntimes = ["iOS-15-0", "iOS-16-4"]
         
         //When
-        let simulatorIds = try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream)
+        let simulatorIds = try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: [], textOutputStream: &mockTextOutputStream, verbose: false)
         
         //Then
         XCTAssertEqual(simulatorIds, [
@@ -201,7 +201,7 @@ final class XcodeServiceTests: XCTestCase {
         let preferredSimulatorNames = ["iPhone 14"]
         
         //When
-        let simulatorIds = try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: preferredSimulatorNames, textOutputStream: &mockTextOutputStream)
+        let simulatorIds = try sut.getSimulatorIds(simulatorRuntimes: simulatorRuntimes, preferredSimulatorNames: preferredSimulatorNames, textOutputStream: &mockTextOutputStream, verbose: false)
         
         //Then
         XCTAssertEqual(simulatorIds, [

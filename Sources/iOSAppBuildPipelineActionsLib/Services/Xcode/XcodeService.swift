@@ -7,7 +7,8 @@ public protocol XcodeServiceProtocol {
     func getSimulatorIds<T>(
         simulatorRuntimes: [XcodeService.SimulatorRuntime],
         preferredSimulatorNames: [String],
-        textOutputStream: inout T)
+        textOutputStream: inout T,
+        verbose: Bool)
     throws -> [XcodeService.SimulatorInfo] where T : TextOutputStream
     func getAppVersion(xcodeProjPath: Path, target: String, configuration: String) throws -> String
     func getBuildNumber(xcodeProjPath: Path, target: String, configuration: String) throws -> Int
@@ -89,7 +90,8 @@ public final class XcodeService: XcodeServiceProtocol {
     public func getSimulatorIds<T>(
         simulatorRuntimes: [SimulatorRuntime],
         preferredSimulatorNames: [String],
-        textOutputStream: inout T)
+        textOutputStream: inout T,
+        verbose: Bool)
     throws -> [SimulatorInfo] where T : TextOutputStream
     {
         let jsonDecoder = JSONDecoder()
@@ -107,7 +109,9 @@ public final class XcodeService: XcodeServiceProtocol {
             let (xcrun_simctl_list_json, _) = try self.zsh.run("xcrun simctl list --json", textOutputStream: &textOutputStream, pipeStdErrSeparately: true)
             print("Decoding JSON...", to: &textOutputStream)
             let xcrun_simctl_list = try jsonDecoder.decode(XcrunSimctlList.self, from: xcrun_simctl_list_json)
-            dump(xcrun_simctl_list)
+            if verbose {
+                dump(xcrun_simctl_list, to: &textOutputStream)
+            }
             let devicesKey = "com.apple.CoreSimulator.SimRuntime.\(simulatorRuntime)"
             print("Searching for devices under '\(devicesKey)'...", to: &textOutputStream)
             guard let devices = xcrun_simctl_list.devices[devicesKey], let firstDevice = devices.first else {

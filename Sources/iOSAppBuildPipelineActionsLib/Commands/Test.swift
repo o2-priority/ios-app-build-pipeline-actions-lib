@@ -18,7 +18,8 @@ public final class Test<T>: NSObject where T: RedactableTextOutputStream {
         let simulatorIds = try xcodeService.getSimulatorIds(
             simulatorRuntimes: input.simulatorRuntimes,
             preferredSimulatorNames: input.preferredSimulatorNames,
-            textOutputStream: &textOutputStream)
+            textOutputStream: &textOutputStream,
+            verbose: true)
         var produceCodeCoverage = true
         for simulatorInfo in simulatorIds {
             try await xcodeService.test(
