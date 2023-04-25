@@ -12,7 +12,10 @@ final class XcodeServiceTests: XCTestCase {
     override func setUpWithError() throws {
         mockCommandService = MockCommandService()
         mockTextOutputStream = MockRedactableTextOutputStream()
-        sut = .init(commandService: mockCommandService)
+        sut = try .init(commandService: mockCommandService,
+                        xcodebuildPath: .init("/usr/local/bin"),
+                        xcbeautifyPath: .init("/usr/local/bin"),
+                        xchtmlreportPath: .init("/usr/local/bin"))
     }
     
     func test_getSimulatorIds_unsupportedPlatform() throws {
@@ -222,6 +225,29 @@ final class XcodeServiceTests: XCTestCase {
             "", "Searching for devices under \'com.apple.CoreSimulator.SimRuntime.iOS-16-4\'...", "\n",
             "", "Searching for devices with preferred name(s)...", "\n",
             "", "\'iPhone 14\' found for iOS-16-4.", "\n"
+        ])
+    }
+    
+    // MARK: test
+    
+    func testTest() async throws {
+        //When
+        try await sut.test(
+            schemeLocation: .project(.init("project")),
+            scheme: "scheme",
+            destination: "destination",
+            simulatorRuntime: "simulatorRuntime",
+            codeCoverageTarget: nil,
+            reportOutputDir: .init(fileURLWithPath: "/reportOutputDir"),
+            textOutputStream: &mockTextOutputStream)
+        
+        //Then
+        XCTAssertEqual(mockCommandService.commandsReceived, [
+            "set -o pipefail && /usr/local/bin/xcodebuild test -project project -scheme scheme -destination destination -resultBundlePath /reportOutputDir/scheme-simulatorRuntime-TestResults | /usr/local/bin/xcbeautify",
+            "/usr/local/bin/xchtmlreport -r /reportOutputDir/scheme-simulatorRuntime-TestResults"
+        ])
+        XCTAssertEqual(mockTextOutputStream.writes, [
+            "", "No code coverage target specified.", "\n"
         ])
     }
 }

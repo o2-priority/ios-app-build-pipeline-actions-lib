@@ -66,6 +66,8 @@ public final class XcodeService: XcodeServiceProtocol {
         case noSimulatorsForRuntime(String)
         case unsupportedPlatform(String)
         case unsupportedVersion(String)
+        case xcodebuildPathIsNotADirectory(Path)
+        case xcbeautifyPathIsNotADirectory(Path)
         
         var errorDescription: String? {
             switch self {
@@ -75,6 +77,10 @@ public final class XcodeService: XcodeServiceProtocol {
                 return "Unsupported platform '\(platform)'."
             case let .unsupportedVersion(version):
                 return "Unsupported version '\(version)'."
+            case let .xcodebuildPathIsNotADirectory(path):
+                return "xcodebuild path is not a directory '\(path.string)'"
+            case let .xcbeautifyPathIsNotADirectory(path):
+                return "xcbeautify path is not a directory '\(path.string)'"
             }
         }
     }
@@ -82,9 +88,29 @@ public final class XcodeService: XcodeServiceProtocol {
     public typealias SimulatorRuntime = String
     
     let zsh: CommandServiceProtocol
+    let xcodebuildPath: Path
+    let xcbeautifyPath: Path
+    let xchtmlreportPath: Path?
     
-    public init(commandService: CommandServiceProtocol) {
+    public init(commandService: CommandServiceProtocol,
+                xcodebuildPath: Path,
+                xcbeautifyPath: Path,
+                xchtmlreportPath: Path? = nil) throws
+    {
         zsh = commandService
+        guard xcodebuildPath.isDirectory else {
+            throw Error.xcodebuildPathIsNotADirectory(xcodebuildPath)
+        }
+        guard xcbeautifyPath.isDirectory else {
+            throw Error.xcbeautifyPathIsNotADirectory(xcbeautifyPath)
+        }
+        self.xcodebuildPath = xcodebuildPath + Path("xcodebuild")
+        self.xcbeautifyPath = xcbeautifyPath + Path("xcbeautify")
+        if let xchtmlreportPath {
+            self.xchtmlreportPath = xchtmlreportPath + Path("xchtmlreport")
+        } else {
+            self.xchtmlreportPath = nil
+        }
     }
     
     public func getSimulatorIds<T>(
@@ -194,15 +220,16 @@ public final class XcodeService: XcodeServiceProtocol {
     ) async throws where T : TextOutputStream
     {
         let resultBundlePath = reportOutputDir.appendingPathComponent("\(scheme)-\(simulatorRuntime)-TestResults").path
-        let xcodebuildTestCommand = XcodebuildCommandBuilder()
+        let xcodebuildTestCommand = try XcodebuildCommandBuilder()
             .action("test", value: schemeLocation.xcodeBuildArgument)
             .argument("scheme", value: scheme)
             .argument("destination", value: destination)
             .argument("resultBundlePath", value: resultBundlePath)
-            .build()
+            .build(xcodebuildPath: xcodebuildPath, xcbeautifyPath: xcbeautifyPath)
         try await zsh.run(xcodebuildTestCommand, textOutputStream: &textOutputStream)
-        //TODO: Works locally but not on Bitrise `zsh:1: command not found: xchtmlreport`
-//        try await zsh.run("xchtmlreport -r \(resultBundlePath)", textOutputStream: &textOutputStream)
+        if let xchtmlreportPath {
+            try await zsh.run("\(xchtmlreportPath.string) -r \(resultBundlePath)", textOutputStream: &textOutputStream)
+        }
         guard let codeCoverageTarget else {
             print("No code coverage target specified.", to: &textOutputStream)
             return
@@ -237,11 +264,11 @@ public final class XcodeService: XcodeServiceProtocol {
         textOutputStream: inout T
     ) async throws where T : TextOutputStream
     {
-        let xcodebuildCommand = XcodebuildCommandBuilder()
+        let xcodebuildCommand = try XcodebuildCommandBuilder()
             .action("build", value: schemeLocation.xcodeBuildArgument)
             .argument("scheme", value: scheme)
             .argument("destination", value: destination)
-            .build()
+            .build(xcodebuildPath: xcodebuildPath, xcbeautifyPath: xcbeautifyPath)
         try await zsh.run(xcodebuildCommand, textOutputStream: &textOutputStream)
     }
     
@@ -254,13 +281,13 @@ public final class XcodeService: XcodeServiceProtocol {
         textOutputStream: inout T
     ) async throws where T : TextOutputStream
     {
-        let xcodebuildArchiveCommand = XcodebuildCommandBuilder()
+        let xcodebuildArchiveCommand = try XcodebuildCommandBuilder()
             .action("archive", value: schemeLocation.xcodeBuildArgument)
             .argument("scheme", value: scheme)
             .argument("destination", value: destination)
             .argument("sdk", value: sdk)
             .argument("archivePath", value: archivePath.string)
-            .build()
+            .build(xcodebuildPath: xcodebuildPath, xcbeautifyPath: xcbeautifyPath)
         try await zsh.run(xcodebuildArchiveCommand, textOutputStream: &textOutputStream)
     }
     
@@ -277,12 +304,12 @@ public final class XcodeService: XcodeServiceProtocol {
         textOutputStream: inout T
     ) async throws where T : TextOutputStream
     {
-        let xcodebuildExportArchiveCommand = XcodebuildCommandBuilder()
+        let xcodebuildExportArchiveCommand = try XcodebuildCommandBuilder()
             .flag("exportArchive")
             .argument("archivePath", value: archivePath.string)
             .argument("exportPath", value: exportPath.string)
             .argument("exportOptionsPlist", value: exportOptionsPlist.string)
-            .build()
+            .build(xcodebuildPath: xcodebuildPath, xcbeautifyPath: xcbeautifyPath)
         try await zsh.run(xcodebuildExportArchiveCommand, textOutputStream: &textOutputStream)
     }
     
@@ -410,12 +437,14 @@ public final class XcodeService: XcodeServiceProtocol {
             return self
         }
         
-        func build() -> String {
+        func build(xcodebuildPath: Path, xcbeautifyPath: Path) throws -> String {
             "set -o pipefail && " //Required to make xcbeautify return status to equal the last command to exit with a non-zero status, or zero if all commands exit successfully.
-                .appending("xcodebuild ")
+                .appending(xcodebuildPath.string)
+                .appending(" ")
                 .appending(action ?? "")
                 .appending(options.joined(separator: " "))
-                .appending(" | xcbeautify")
+                .appending(" | ")
+                .appending(xcbeautifyPath.string)
         }
     }
 }
