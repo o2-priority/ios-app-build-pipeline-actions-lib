@@ -67,7 +67,7 @@ public extension CommandServiceProtocol {
 
 public struct CommandService: CommandServiceProtocol {
     
-    struct Error: Swift.Error, LocalizedError, Equatable {
+    public struct Error: Swift.Error, LocalizedError, Equatable {
         
         public let command: String
         public let message: String
@@ -82,7 +82,7 @@ public struct CommandService: CommandServiceProtocol {
             self.message = "Exit code \(exitCode)"
         }
         
-        var errorDescription: String? {
+        public var errorDescription: String? {
             return #""\#(message)" from command "\#(command)""#
         }
     }
