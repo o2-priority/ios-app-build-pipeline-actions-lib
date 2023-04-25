@@ -66,9 +66,11 @@ public final class XcodeService: XcodeServiceProtocol {
         case noSimulatorsForRuntime(String)
         case unsupportedPlatform(String)
         case unsupportedVersion(String)
+        case xcrunPathIsNotADirectory(Path)
         case xcodebuildPathIsNotADirectory(Path)
         case xcbeautifyPathIsNotADirectory(Path)
         case xchtmlreportPathIsNotADirectory(Path)
+        case xccPathIsNotADirectory(Path)
         
         var errorDescription: String? {
             switch self {
@@ -78,12 +80,16 @@ public final class XcodeService: XcodeServiceProtocol {
                 return "Unsupported platform '\(platform)'."
             case let .unsupportedVersion(version):
                 return "Unsupported version '\(version)'."
+            case let .xcrunPathIsNotADirectory(path):
+                return "xcrun path is not a directory '\(path.string)'"
             case let .xcodebuildPathIsNotADirectory(path):
                 return "xcodebuild path is not a directory '\(path.string)'"
             case let .xcbeautifyPathIsNotADirectory(path):
                 return "xcbeautify path is not a directory '\(path.string)'"
             case let .xchtmlreportPathIsNotADirectory(path):
                 return "xchtmlreport path is not a directory '\(path.string)'"
+            case let .xccPathIsNotADirectory(path):
+                return "xcc path is not a directory '\(path.string)'"
             }
         }
     }
@@ -91,16 +97,29 @@ public final class XcodeService: XcodeServiceProtocol {
     public typealias SimulatorRuntime = String
     
     let zsh: CommandServiceProtocol
+    let xcrunPath: Path
     let xcodebuildPath: Path
     let xcbeautifyPath: Path
-    let xchtmlreportPath: Path?
+    let xchtmlreportPath: Path
+    let xccPath: Path
     
     public init(commandService: CommandServiceProtocol,
+                xcrunPath: Path? = nil,
                 xcodebuildPath: Path? = nil,
                 xcbeautifyPath: Path? = nil,
-                xchtmlreportPath: Path? = nil) throws
+                xchtmlreportPath: Path? = nil,
+                xccPath: Path? = nil) throws
     {
         zsh = commandService
+        let xcrun = "xcrun"
+        if let xcrunPath {
+            guard xcrunPath.isDirectory else {
+                throw Error.xcrunPathIsNotADirectory(xcrunPath)
+            }
+            self.xcrunPath = xcrunPath + Path(xcrun)
+        } else {
+            self.xcrunPath = Path(xcrun)
+        }
         let xcodebuild = "xcodebuild"
         if let xcodebuildPath {
             guard xcodebuildPath.isDirectory else {
@@ -128,6 +147,15 @@ public final class XcodeService: XcodeServiceProtocol {
         } else {
             self.xchtmlreportPath = Path(xchtmlreport)
         }
+        let xcc = "xccPath"
+        if let xccPath {
+            guard xccPath.isDirectory else {
+                throw Error.xccPathIsNotADirectory(xccPath)
+            }
+            self.xccPath = xccPath + Path(xcc)
+        } else {
+            self.xccPath = Path(xcc)
+        }
     }
     
     public func getSimulatorIds<T>(
@@ -149,7 +177,7 @@ public final class XcodeService: XcodeServiceProtocol {
                 throw Error.unsupportedVersion("Non-integer version '\(simulatorRuntimeComponents.dropFirst().joined(separator: "-"))' is not supported.")
             }
             print("Getting list of simulators as JSON...", to: &textOutputStream)
-            let (xcrun_simctl_list_json, _) = try self.zsh.run("xcrun simctl list --json", textOutputStream: &textOutputStream, pipeStdErrSeparately: true)
+            let (xcrun_simctl_list_json, _) = try self.zsh.run("\(xcrunPath.string) simctl list --json", textOutputStream: &textOutputStream, pipeStdErrSeparately: true)
             print("Decoding JSON...", to: &textOutputStream)
             let xcrun_simctl_list = try jsonDecoder.decode(XcrunSimctlList.self, from: xcrun_simctl_list_json)
             if verbose {
@@ -244,14 +272,12 @@ public final class XcodeService: XcodeServiceProtocol {
             .argument("resultBundlePath", value: resultBundlePath)
             .build(xcodebuildPath: xcodebuildPath, xcbeautifyPath: xcbeautifyPath)
         try await zsh.run(xcodebuildTestCommand, textOutputStream: &textOutputStream)
-        if let xchtmlreportPath {
-            try await zsh.run("\(xchtmlreportPath.string) -r \(resultBundlePath)", textOutputStream: &textOutputStream)
-        }
+        try await zsh.run("\(xchtmlreportPath.string) -r \(resultBundlePath)", textOutputStream: &textOutputStream)
         guard let codeCoverageTarget else {
             print("No code coverage target specified.", to: &textOutputStream)
             return
         }
-        let codeCovOutput: String = try zsh.run("xcrun xccov view --report --only-targets --json \(resultBundlePath).xcresult", textOutputStream: &textOutputStream)
+        let codeCovOutput: String = try zsh.run("\(xcrunPath.string) xccov view --report --only-targets --json \(resultBundlePath).xcresult", textOutputStream: &textOutputStream)
         let codeCoverageReport = codeCovOutput
             .components(separatedBy: "\n")
             .compactMap { $0.data(using: .utf8) }
@@ -270,8 +296,8 @@ public final class XcodeService: XcodeServiceProtocol {
             print("No code coverage found for \(codeCoverageTarget)", to: &textOutputStream)
         }
         // Generate code coverage in cobertura XML format
-        try await zsh.run("xcrun xccov view --report --json \(resultBundlePath).xcresult > coverage.json", currentDirectory: reportOutputDir, textOutputStream: &textOutputStream)
-        try await zsh.run("xcc generate coverage.json CodeCoverageXML cobertura-xml", currentDirectory: reportOutputDir, textOutputStream: &textOutputStream)
+        try await zsh.run("\(xcrunPath.string) xccov view --report --json \(resultBundlePath).xcresult > coverage.json", currentDirectory: reportOutputDir, textOutputStream: &textOutputStream)
+        try await zsh.run("\(xccPath.string) generate coverage.json CodeCoverageXML cobertura-xml", currentDirectory: reportOutputDir, textOutputStream: &textOutputStream)
     }
     
     public func build<T>(
@@ -341,7 +367,7 @@ public final class XcodeService: XcodeServiceProtocol {
     ) async throws where T : TextOutputStream
     {
         print("Uploading ipa using Application Loader...", to: &textOutputStream)
-        try await zsh.run("xcrun altool --upload-package \(ipaPath) --type ios --apple-id \(appAppleId) --bundle-version \(bundleVersion) --bundle-short-version-string \(bundleShortVersion) --bundle-id \(bundleId) \(auth.command)", textOutputStream: &textOutputStream)
+        try await zsh.run("\(xcrunPath.string) altool --upload-package \(ipaPath) --type ios --apple-id \(appAppleId) --bundle-version \(bundleVersion) --bundle-short-version-string \(bundleShortVersion) --bundle-id \(bundleId) \(auth.command)", textOutputStream: &textOutputStream)
     }
     
     // MARK: Supporting Types

@@ -251,9 +251,11 @@ final class XcodeServiceTests: XCTestCase {
     func testTestWithCustomBinaryPaths() async throws {
         //Given
         sut = try .init(commandService: mockCommandService,
+                        xcrunPath: .init("/usr/local/bin"),
                         xcodebuildPath: .init("/usr/local/bin"),
                         xcbeautifyPath: .init("/usr/local/bin"),
-                        xchtmlreportPath: .init("/usr/local/bin"))
+                        xchtmlreportPath: .init("/usr/local/bin"),
+                        xccPath: .init("/usr/local/bin"))
         
         //When
         try await sut.test(
@@ -275,13 +277,23 @@ final class XcodeServiceTests: XCTestCase {
         ])
     }
     
+    func testTestWithInvalidXcrunPath() {
+        do {
+            //When
+            sut = try .init(commandService: mockCommandService,
+                            xcrunPath: .init("file"))
+            XCTFail()
+        } catch {
+            //Then
+            XCTAssertEqual(error.localizedDescription, "xcrun path is not a directory 'file'")
+        }
+    }
+    
     func testTestWithInvalidXcodebuildPath() {
         do {
             //When
             sut = try .init(commandService: mockCommandService,
-                            xcodebuildPath: .init("file"),
-                            xcbeautifyPath: .init("/usr/local/bin"),
-                            xchtmlreportPath: .init("/usr/local/bin"))
+                            xcodebuildPath: .init("file"))
             XCTFail()
         } catch {
             //Then
@@ -293,9 +305,7 @@ final class XcodeServiceTests: XCTestCase {
         do {
             //When
             sut = try .init(commandService: mockCommandService,
-                            xcodebuildPath: .init("/usr/local/bin"),
-                            xcbeautifyPath: .init("file"),
-                            xchtmlreportPath: .init("/usr/local/bin"))
+                            xcbeautifyPath: .init("file"))
             XCTFail()
         } catch {
             //Then
@@ -307,13 +317,23 @@ final class XcodeServiceTests: XCTestCase {
         do {
             //When
             sut = try .init(commandService: mockCommandService,
-                            xcodebuildPath: .init("/usr/local/bin"),
-                            xcbeautifyPath: .init("/usr/local/bin"),
                             xchtmlreportPath: .init("file"))
             XCTFail()
         } catch {
             //Then
             XCTAssertEqual(error.localizedDescription, "xchtmlreport path is not a directory 'file'")
+        }
+    }
+    
+    func testTestWithInvalidXccPath() {
+        do {
+            //When
+            sut = try .init(commandService: mockCommandService,
+                            xccPath: .init("file"))
+            XCTFail()
+        } catch {
+            //Then
+            XCTAssertEqual(error.localizedDescription, "xcc path is not a directory 'file'")
         }
     }
 }
