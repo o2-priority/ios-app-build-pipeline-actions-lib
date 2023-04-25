@@ -68,6 +68,7 @@ public final class XcodeService: XcodeServiceProtocol {
         case unsupportedVersion(String)
         case xcodebuildPathIsNotADirectory(Path)
         case xcbeautifyPathIsNotADirectory(Path)
+        case xchtmlreportPathIsNotADirectory(Path)
         
         var errorDescription: String? {
             switch self {
@@ -81,6 +82,8 @@ public final class XcodeService: XcodeServiceProtocol {
                 return "xcodebuild path is not a directory '\(path.string)'"
             case let .xcbeautifyPathIsNotADirectory(path):
                 return "xcbeautify path is not a directory '\(path.string)'"
+            case let .xchtmlreportPathIsNotADirectory(path):
+                return "xchtmlreport path is not a directory '\(path.string)'"
             }
         }
     }
@@ -93,23 +96,37 @@ public final class XcodeService: XcodeServiceProtocol {
     let xchtmlreportPath: Path?
     
     public init(commandService: CommandServiceProtocol,
-                xcodebuildPath: Path,
-                xcbeautifyPath: Path,
+                xcodebuildPath: Path? = nil,
+                xcbeautifyPath: Path? = nil,
                 xchtmlreportPath: Path? = nil) throws
     {
         zsh = commandService
-        guard xcodebuildPath.isDirectory else {
-            throw Error.xcodebuildPathIsNotADirectory(xcodebuildPath)
-        }
-        guard xcbeautifyPath.isDirectory else {
-            throw Error.xcbeautifyPathIsNotADirectory(xcbeautifyPath)
-        }
-        self.xcodebuildPath = xcodebuildPath + Path("xcodebuild")
-        self.xcbeautifyPath = xcbeautifyPath + Path("xcbeautify")
-        if let xchtmlreportPath {
-            self.xchtmlreportPath = xchtmlreportPath + Path("xchtmlreport")
+        let xcodebuild = "xcodebuild"
+        if let xcodebuildPath {
+            guard xcodebuildPath.isDirectory else {
+                throw Error.xcodebuildPathIsNotADirectory(xcodebuildPath)
+            }
+            self.xcodebuildPath = xcodebuildPath + Path(xcodebuild)
         } else {
-            self.xchtmlreportPath = nil
+            self.xcodebuildPath = Path(xcodebuild)
+        }
+        let xcbeautify = "xcbeautify"
+        if let xcbeautifyPath {
+            guard xcbeautifyPath.isDirectory else {
+                throw Error.xcbeautifyPathIsNotADirectory(xcbeautifyPath)
+            }
+            self.xcbeautifyPath = xcbeautifyPath + Path(xcbeautify)
+        } else {
+            self.xcbeautifyPath = Path(xcbeautify)
+        }
+        let xchtmlreport = "xchtmlreport"
+        if let xchtmlreportPath {
+            guard xchtmlreportPath.isDirectory else {
+                throw Error.xchtmlreportPathIsNotADirectory(xchtmlreportPath)
+            }
+            self.xchtmlreportPath = xchtmlreportPath + Path(xchtmlreport)
+        } else {
+            self.xchtmlreportPath = Path(xchtmlreport)
         }
     }
     

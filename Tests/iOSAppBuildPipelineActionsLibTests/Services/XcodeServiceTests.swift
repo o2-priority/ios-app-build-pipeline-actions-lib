@@ -12,10 +12,7 @@ final class XcodeServiceTests: XCTestCase {
     override func setUpWithError() throws {
         mockCommandService = MockCommandService()
         mockTextOutputStream = MockRedactableTextOutputStream()
-        sut = try .init(commandService: mockCommandService,
-                        xcodebuildPath: .init("/usr/local/bin"),
-                        xcbeautifyPath: .init("/usr/local/bin"),
-                        xchtmlreportPath: .init("/usr/local/bin"))
+        sut = try .init(commandService: mockCommandService)
     }
     
     func test_getSimulatorIds_unsupportedPlatform() throws {
@@ -230,7 +227,34 @@ final class XcodeServiceTests: XCTestCase {
     
     // MARK: test
     
-    func testTest() async throws {
+    func testTestWithDefaultBinaryPaths() async throws {
+        //When
+        try await sut.test(
+            schemeLocation: .project(.init("project")),
+            scheme: "scheme",
+            destination: "destination",
+            simulatorRuntime: "simulatorRuntime",
+            codeCoverageTarget: nil,
+            reportOutputDir: .init(fileURLWithPath: "/reportOutputDir"),
+            textOutputStream: &mockTextOutputStream)
+        
+        //Then
+        XCTAssertEqual(mockCommandService.commandsReceived, [
+            "set -o pipefail && xcodebuild test -project project -scheme scheme -destination destination -resultBundlePath /reportOutputDir/scheme-simulatorRuntime-TestResults | xcbeautify",
+            "xchtmlreport -r /reportOutputDir/scheme-simulatorRuntime-TestResults"
+        ])
+        XCTAssertEqual(mockTextOutputStream.writes, [
+            "", "No code coverage target specified.", "\n"
+        ])
+    }
+    
+    func testTestWithCustomBinaryPaths() async throws {
+        //Given
+        sut = try .init(commandService: mockCommandService,
+                        xcodebuildPath: .init("/usr/local/bin"),
+                        xcbeautifyPath: .init("/usr/local/bin"),
+                        xchtmlreportPath: .init("/usr/local/bin"))
+        
         //When
         try await sut.test(
             schemeLocation: .project(.init("project")),
@@ -249,5 +273,47 @@ final class XcodeServiceTests: XCTestCase {
         XCTAssertEqual(mockTextOutputStream.writes, [
             "", "No code coverage target specified.", "\n"
         ])
+    }
+    
+    func testTestWithInvalidXcodebuildPath() {
+        do {
+            //When
+            sut = try .init(commandService: mockCommandService,
+                            xcodebuildPath: .init("file"),
+                            xcbeautifyPath: .init("/usr/local/bin"),
+                            xchtmlreportPath: .init("/usr/local/bin"))
+            XCTFail()
+        } catch {
+            //Then
+            XCTAssertEqual(error.localizedDescription, "xcodebuild path is not a directory 'file'")
+        }
+    }
+    
+    func testTestWithInvalidXcbeautifyPath() {
+        do {
+            //When
+            sut = try .init(commandService: mockCommandService,
+                            xcodebuildPath: .init("/usr/local/bin"),
+                            xcbeautifyPath: .init("file"),
+                            xchtmlreportPath: .init("/usr/local/bin"))
+            XCTFail()
+        } catch {
+            //Then
+            XCTAssertEqual(error.localizedDescription, "xcbeautify path is not a directory 'file'")
+        }
+    }
+    
+    func testTestWithInvalidXchtmlreportPath() {
+        do {
+            //When
+            sut = try .init(commandService: mockCommandService,
+                            xcodebuildPath: .init("/usr/local/bin"),
+                            xcbeautifyPath: .init("/usr/local/bin"),
+                            xchtmlreportPath: .init("file"))
+            XCTFail()
+        } catch {
+            //Then
+            XCTAssertEqual(error.localizedDescription, "xchtmlreport path is not a directory 'file'")
+        }
     }
 }
