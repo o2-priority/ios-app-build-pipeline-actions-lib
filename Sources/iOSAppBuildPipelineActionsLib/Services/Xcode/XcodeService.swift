@@ -147,7 +147,7 @@ public final class XcodeService: XcodeServiceProtocol {
         } else {
             self.xchtmlreportPath = Path(xchtmlreport)
         }
-        let xcc = "xccPath"
+        let xcc = "xcc"
         if let xccPath {
             guard xccPath.isDirectory else {
                 throw Error.xccPathIsNotADirectory(xccPath)
