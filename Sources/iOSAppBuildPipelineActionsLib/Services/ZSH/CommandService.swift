@@ -69,8 +69,8 @@ public struct CommandService: CommandServiceProtocol {
     
     struct Error: Swift.Error, LocalizedError, Equatable {
         
-        let command: String
-        let message: String
+        public let command: String
+        public let message: String
         
         init(command: String, message: String) {
             self.command = command
