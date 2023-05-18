@@ -24,9 +24,9 @@ extension Git.Branch {
     
     func parseReleaseVersions() throws -> (String, String) {
         let components = name.components(separatedBy: "/")
-        if components.count != 3 {
+        if components.count != 4 {
             throw ActionsError.wrongBranchNamingConvention
         }
-        return (components[1], components[2])
+        return (components[2], components[3])
     }
 }

@@ -412,52 +412,48 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
         }
         print("Updating Jira...", to: &textOutputStream);
         let currentBranch = try gitService.fetchCurrentBranch()
-        if currentBranch.name.hasPrefix("release/") {
-            return
+        let jiraTicketNumber = try currentBranch.parseJiraTicketNumber()
+        try await atlassianAPI.moveTicketToQA(jiraTicketNumber, jiraQAColumnId: jiraQAColumnId)
+        print("\(jiraTicketNumber) status updated to 'In QA'", to: &textOutputStream)
+        if appCenterReleaseInstallURLs.isEmpty {
+            let comment = Atlassian.Comment(
+                body: .init(content: [
+                    .init(content: [
+                        .init(text: comment)
+                    ])
+                ])
+            )
+            try await atlassianAPI.commentOn(ticket: jiraTicketNumber, comment: comment)
         } else {
-            let jiraTicketNumber = try currentBranch.parseJiraTicketNumber()
-            try await atlassianAPI.moveTicketToQA(jiraTicketNumber, jiraQAColumnId: jiraQAColumnId)
-            print("\(jiraTicketNumber) status updated to 'In QA'", to: &textOutputStream)
-            if appCenterReleaseInstallURLs.isEmpty {
+            for (appFlavour, installURL) in appCenterReleaseInstallURLs {
                 let comment = Atlassian.Comment(
                     body: .init(content: [
                         .init(content: [
                             .init(text: comment)
+                        ]),
+                        .init(content: [
+                            .init(
+                                text: "Select a flavour to install on your iPhone:",
+                                marks: [.init(
+                                    type: .em
+                                )]
+                            )
+                        ]),
+                        .init(content: [
+                            .init(
+                                text: appFlavour.labelIncludingRelease,
+                                marks: [.init(
+                                    type: .link,
+                                    attrs: .init(href: installURL)
+                                )]
+                            )
                         ])
                     ])
                 )
                 try await atlassianAPI.commentOn(ticket: jiraTicketNumber, comment: comment)
-            } else {
-                for (appFlavour, installURL) in appCenterReleaseInstallURLs {
-                    let comment = Atlassian.Comment(
-                        body: .init(content: [
-                            .init(content: [
-                                .init(text: comment)
-                            ]),
-                            .init(content: [
-                                .init(
-                                    text: "Select a flavour to install on your iPhone:",
-                                    marks: [.init(
-                                        type: .em
-                                    )]
-                                )
-                            ]),
-                            .init(content: [
-                                .init(
-                                    text: appFlavour.labelIncludingRelease,
-                                    marks: [.init(
-                                        type: .link,
-                                        attrs: .init(href: installURL)
-                                    )]
-                                )
-                            ])
-                        ])
-                    )
-                    try await atlassianAPI.commentOn(ticket: jiraTicketNumber, comment: comment)
-                }
             }
-            print("Comment with build details added to \(jiraTicketNumber)", to: &textOutputStream)
         }
+        print("Comment with build details added to \(jiraTicketNumber)", to: &textOutputStream)
     }
     
     private func slackBuildSummary(_ buildSummary: String, appCenterReleaseInstallURLs: [(AppFlavour, URL)], exportMethod: XcodeBuildExportMethod, environment: [String : String]) async throws
@@ -485,7 +481,6 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
             break
         }
         if let currentBranch = try? gitService.fetchCurrentBranch(),
-           !currentBranch.name.hasPrefix("release/"),
            let jiraTicketNumber = try? currentBranch.parseJiraTicketNumber()
         {
             blocks.append(.context(.init(text: "Jira: <\(atlassianAPI.baseURLString)/browse/\(jiraTicketNumber)|\(jiraTicketNumber)>")))
