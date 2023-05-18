@@ -263,11 +263,15 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
     {
         print("Preparing release notes...", to: &textOutputStream)
         if currentBranch.name.hasPrefix("release/") {
+            let (thisRelease, previousRelease) = try currentBranch.parseReleaseVersions()
+            let ancestryPathGitLog = try gitService.fetchAncestryPathGitLog(comparisonTag: previousRelease)
             //Confluence Storage Format reference https://confluence.atlassian.com/doc/confluence-storage-format-790796544.html
             let formattedContentString = """
             <strong>Branch:</strong> \(currentBranch)
             <strong>Environments:</strong> \(input.environments)
             <strong>Distribution method:</strong> \(input.distributionMethod)
+            <p>Git revision list of the ancestry path between <code>\(previousRelease)</code> and <code>\(thisRelease)</code>:</p>
+            <pre>\(ancestryPathGitLog.XHTMLEscaped)</pre>
             """
             let confluencePage = Atlassian.Page(title: input.pageTitle,
                                                 space: "PD",
