@@ -20,28 +20,6 @@ public struct Atlassian {
 
     public struct Page: Codable, Equatable {
         
-        struct JSON2StringError: Error {}
-        
-        enum Status: String, Codable, Equatable {
-            case current
-            case draft
-        }
-        
-        struct Body: Codable, Equatable {
-            
-            struct Storage: Codable, Equatable {
-                
-                var value: String
-                var representation: Representation
-            }
-            
-            var storage: Storage
-            
-            init(value: String, representation: Representation) {
-                storage = .init(value: value, representation: representation)
-            }
-        }
-        
         var spaceId: String
         var status: Status
         var title: String
@@ -74,6 +52,25 @@ public struct Atlassian {
             self.parentId = parentId
             self.body = .init(value: wiki, representation: .wiki)
         }
+        
+        enum Status: String, Codable, Equatable {
+            case current
+            case draft
+        }
+        
+        struct Body: Codable, Equatable {
+            
+            var value: String
+            var representation: Representation
+            
+            enum Representation: String, Codable {
+                case atlasDocFormat = "atlas_doc_format" //Atlassian Document Format (ADF) https://developer.atlassian.com/cloud/jira/platform/apis/document/playground/
+                case storage = "storage" //Confluence Storage Format reference https://confluence.atlassian.com/doc/confluence-storage-format-790796544.html
+                case wiki = "wiki" //Confluence Wiki Markup reference https://support.atlassian.com/confluence-cloud/docs/insert-confluence-wiki-markup/
+            }
+        }
+        
+        struct JSON2StringError: Error {}
     }
     
     public struct PageResponse: Codable, Equatable {
@@ -202,11 +199,5 @@ public struct Atlassian {
                 }
             }
         }
-    }
-    
-    public enum Representation: String, Codable {
-        case atlasDocFormat = "atlas_doc_format" //Atlassian Document Format (ADF) https://developer.atlassian.com/cloud/jira/platform/apis/document/playground/
-        case storage = "storage" //Confluence Storage Format reference https://confluence.atlassian.com/doc/confluence-storage-format-790796544.html
-        case wiki = "wiki" //Confluence Wiki Markup reference https://support.atlassian.com/confluence-cloud/docs/insert-confluence-wiki-markup/
     }
 }
