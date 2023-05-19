@@ -7,8 +7,12 @@ public struct Git {
         let html_url: String
     }
     
-    public struct Branch {
+    public struct Branch: CustomStringConvertible {
         let name: String
+        
+        public var description: String {
+            name
+        }
     }
 }
 

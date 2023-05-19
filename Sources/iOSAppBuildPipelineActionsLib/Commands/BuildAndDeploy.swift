@@ -271,7 +271,7 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
             <strong>Environments:</strong> \(input.environments)
             <strong>Distribution method:</strong> \(input.distributionMethod)
             <p>Git revision list of the ancestry path between <code>\(previousRelease)</code> and <code>\(thisRelease)</code>:</p>
-            <pre>\(ancestryPathGitLog.XHTMLEscaped)</pre>
+            <code>\(ancestryPathGitLog.XHTMLEscaped)</code>
             """
             let confluencePage = Atlassian.Page(title: input.pageTitle,
                                                 space: "PD",
