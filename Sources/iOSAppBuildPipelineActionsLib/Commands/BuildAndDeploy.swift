@@ -60,7 +60,10 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
         let kConfluenceSpaceId = "CONFLUENCE_RELEASE_NOTES_SPACE_ID"
         let kConfluenceParentPageId = "CONFLUENCE_RELEASE_NOTES_PARENT_PAGE_ID"
         if currentBranch.name.hasPrefix("release/") {
-            if (environment[kConfluenceSpaceId] == nil || environment[kConfluenceParentPageId] == nil) {
+            if environment[kConfluenceSpaceId] == nil {
+                throw ReleaseError.envVarNotFound(kConfluenceSpaceId)
+            }
+            if environment[kConfluenceParentPageId] == nil {
                 throw ReleaseError.envVarNotFound(kConfluenceParentPageId)
             }
         }
