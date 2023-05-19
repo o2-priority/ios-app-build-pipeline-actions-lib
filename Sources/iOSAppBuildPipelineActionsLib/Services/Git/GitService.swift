@@ -56,7 +56,7 @@ public final class GitService<T>: GitServiceProtocol where T: RedactableTextOutp
             .split(separator: "\n")
             .compactMap { try? git("--no-pager log --oneline \($0) -n 1") }
             .joined()
-        return ancestryPathGitLog
+        return ancestryPathGitLog.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
     public func isWorkingDirectoryClean() throws -> Bool {
