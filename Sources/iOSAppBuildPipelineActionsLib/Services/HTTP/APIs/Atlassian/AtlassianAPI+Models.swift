@@ -75,7 +75,7 @@ public struct Atlassian {
     
     public struct PageResponse: Codable, Equatable {
         
-        var id: String
+        var id: Int
     }
     
     public struct TransitionBody: Codable, Equatable {
