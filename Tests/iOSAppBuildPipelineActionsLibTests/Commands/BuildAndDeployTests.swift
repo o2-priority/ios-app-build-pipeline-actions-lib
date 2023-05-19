@@ -25,6 +25,7 @@ final class BuildAndDeployTests: XCTestCase {
     let mock200Response = HTTPURLResponse(url: URL(string: "www.google.com")!, statusCode: 200, httpVersion: nil, headerFields: nil)!
     let releaseNotesInput = try! ReleaseNotesParameters(environments: "dev,test",
                                                         distributionMethod: "enterprise",
+                                                        confluenceSpaceId: "sid",
                                                         confluenceParentPageId: "pageId",
                                                         pageTitle: "pageTitle1",
                                                         gitHubOwner: "owner",
@@ -55,6 +56,7 @@ final class BuildAndDeployTests: XCTestCase {
         gitService.isWorkingDirectoryCleanResult = .success(true)
         gitHubAPI.pullRequestResults = [.success([])]
         processInfoService.environment = [
+            "CONFLUENCE_RELEASE_NOTES_SPACE_ID" : "0",
             "CONFLUENCE_RELEASE_NOTES_PARENT_PAGE_ID" : "1",
             "ALTOOL_USERNAME" : "user",
             "ALTOOL_PASSWORD" : "pass",

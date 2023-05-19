@@ -57,9 +57,12 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
             throw ReleaseError.gitWorkingDirectoryIsDirty
         }
         let currentBranch = try gitService.fetchCurrentBranch()
+        let kConfluenceSpaceId = "CONFLUENCE_RELEASE_NOTES_SPACE_ID"
         let kConfluenceParentPageId = "CONFLUENCE_RELEASE_NOTES_PARENT_PAGE_ID"
-        if currentBranch.name.hasPrefix("release/"), environment[kConfluenceParentPageId] == nil {
-            throw ReleaseError.envVarNotFound(kConfluenceParentPageId)
+        if currentBranch.name.hasPrefix("release/") {
+            if (environment[kConfluenceSpaceId] == nil || environment[kConfluenceParentPageId] == nil) {
+                throw ReleaseError.envVarNotFound(kConfluenceParentPageId)
+            }
         }
         
         // Run unit tests
@@ -96,6 +99,9 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
         try xcodeService.setBuildNumber(buildNumber, xcodeProjPath: input.schemeLocation.path, target: input.target)
         
         // Prepare release notes
+        guard let confluenceSpaceId = environment[kConfluenceSpaceId] else {
+            throw ReleaseError.envVarNotFound(kConfluenceSpaceId)
+        }
         guard let confluenceParentPageId = environment[kConfluenceParentPageId] else {
             throw ReleaseError.envVarNotFound(kConfluenceParentPageId)
         }
@@ -104,6 +110,7 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
             currentBranch: currentBranch,
             try .init(environments: input.appFlavours.map { $0.labelIncludingRelease }.joined(separator: ", "),
                       distributionMethod: exportMethod.displayText,
+                      confluenceSpaceId: confluenceSpaceId,
                       confluenceParentPageId: confluenceParentPageId,
                       pageTitle: "v\(appVersion) (\(buildNumber))",
                       gitHubOwner: buildAndDeployParameters.gitHubOwner,
@@ -288,7 +295,7 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
                 ]))
             ])
             let confluencePage = try Atlassian.Page(
-                spaceId: "PD",
+                spaceId: input.confluenceSpaceId,
                 status: .current,
                 title: input.pageTitle,
                 parentId: input.confluenceParentPageId,
