@@ -26,7 +26,7 @@ final class HTTPServiceTests: XCTestCase {
         }
     ]
     """
-    let mockPage = Atlassian.Page(title: "title1", space: "space1", ancestor: "ancestor1", content: "content1", representation: .storage)
+    let mockPage = try! Atlassian.Page(spaceId: "sid", status: .current, title: "title", parentId: "pid", atlasDocFormat: .init(content: []))
     let mockCredentials = Atlassian.Credentials(userName: "user1", token: "token1")
     let mockURL = URL(string: "www.google.com")!
     let mockURLRequest = URLRequest(url: URL(string: "www.google.com")!)

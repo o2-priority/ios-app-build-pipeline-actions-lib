@@ -71,8 +71,8 @@ class AtlassianAPITests: XCTestCase {
     //MARK: postReleaseNotes tests
     func test_postReleaseNotes_when_ticketNumber_is_as_proper() async throws {
         //Given
-        let body = Atlassian.Page(title: "title", space: "space", ancestor: "ancestor", content: "content", representation: .storage)
-        mockNetworkService.sendResults = [Atlassian.ContentRepsonse(id: "", _links: .init(base: "", webui: ""))]
+        let body = try Atlassian.Page(spaceId: "sid", status: .current, title: "title", parentId: "pid", atlasDocFormat: .init(content: []))
+        mockNetworkService.sendResults = [Atlassian.PageResponse(id: "")]
         
         //When
         do {

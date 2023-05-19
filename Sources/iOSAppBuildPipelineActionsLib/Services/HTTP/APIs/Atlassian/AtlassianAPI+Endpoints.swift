@@ -37,7 +37,7 @@ public extension AtlassianAPI {
     }
 
     /**
-     https://developer.atlassian.com/cloud/confluence/rest/api-group-content/#api-wiki-rest-api-content-post
+     https://developer.atlassian.com/cloud/confluence/rest/v2/api-group-page/#api-pages-post
      */
     struct PostReleaseNotes: HTTPRequestable, AuthorizationAtlassian, ContentTypeJSON {
         
@@ -49,7 +49,7 @@ public extension AtlassianAPI {
         
         init(credentials: Atlassian.Credentials, content: Atlassian.Page) throws {
             method = "POST"
-            path = "/wiki/rest/api/content"
+            path = "/wiki/api/v2/pages"
             self.content = content
             try addAuthorizationHeader(credentials: credentials)
             addContentTypeHeader()

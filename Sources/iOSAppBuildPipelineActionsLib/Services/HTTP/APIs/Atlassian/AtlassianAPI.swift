@@ -4,7 +4,7 @@ public protocol AtlassianAPIProtocol: API {
     
     func moveTicketToQA(_ ticketNumber: String, jiraQAColumnId: String) async throws
     func commentOn(ticket: String, comment: Atlassian.Comment) async throws
-    func postReleaseNotes(_ page: Atlassian.Page) async throws -> Atlassian.ContentRepsonse
+    func postReleaseNotes(_ page: Atlassian.Page) async throws -> Atlassian.PageResponse
 }
 
 public final class AtlassianAPI: AtlassianAPIProtocol, RequestConstructable {
@@ -35,7 +35,7 @@ public final class AtlassianAPI: AtlassianAPIProtocol, RequestConstructable {
         return try await httpService.send(urlRequest: urlRequest)
     }
     
-    public func postReleaseNotes(_ page: Atlassian.Page) async throws -> Atlassian.ContentRepsonse {
+    public func postReleaseNotes(_ page: Atlassian.Page) async throws -> Atlassian.PageResponse {
         let requestable = try PostReleaseNotes(credentials: credentials, content: page)
         let urlRequest = try constructRequest(with: requestable)
         return try await httpService.send(urlRequest: urlRequest)

@@ -265,21 +265,36 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
         if currentBranch.name.hasPrefix("release/") {
             let (thisRelease, previousRelease) = try currentBranch.parseReleaseVersions()
             let ancestryPathGitLog = try gitService.fetchAncestryPathGitLog(comparisonTag: previousRelease)
-            //Confluence Storage Format reference https://confluence.atlassian.com/doc/confluence-storage-format-790796544.html
-            let formattedContentString = """
-            <strong>Branch:</strong> \(currentBranch)
-            <strong>Environments:</strong> \(input.environments)
-            <strong>Distribution method:</strong> \(input.distributionMethod)
-            <p>Git revision list of the ancestry path between <code>\(previousRelease)</code> and <code>\(thisRelease)</code>:</p>
-            <code>\(ancestryPathGitLog.XHTMLEscaped)</code>
-            """
-            let confluencePage = Atlassian.Page(title: input.pageTitle,
-                                                space: "PD",
-                                                ancestor: input.confluenceParentPageId,
-                                                content: formattedContentString,
-                                                representation: .storage)
-            let contentResponse = try await atlassianAPI.postReleaseNotes(confluencePage)
-            print("Branch: \(currentBranch.name)\n\(contentResponse._links.base)\(contentResponse._links.webui)", to: &textOutputStream)
+            let releaseNotes = Atlassian.AtlassianDocumentFormat(content: [
+                .paragraph(.init([
+                    .text(.init(text: "Branch: ", marks: [.init(type: .strong)])),
+                    .text(.init(text: currentBranch.name)),
+                    .hardBreak,
+                    .text(.init(text: "Environments: ", marks: [.init(type: .strong)])),
+                    .text(.init(text: input.environments)),
+                    .hardBreak,
+                    .text(.init(text: "Distribution method: ", marks: [.init(type: .strong)])),
+                    .text(.init(text: input.distributionMethod))
+                ])),
+                .paragraph(.init([
+                    .text(.init(text: "Git revision list of the ancestry path between ")),
+                    .text(.init(text: previousRelease, marks: [.init(type: .code)])),
+                    .text(.init(text: " and ")),
+                    .text(.init(text: thisRelease, marks: [.init(type: .code)])),
+                    .text(.init(text: ":"))
+                ])),
+                .codeBlock(.init([
+                    .text(.init(text: ancestryPathGitLog))
+                ]))
+            ])
+            let confluencePage = try Atlassian.Page(
+                spaceId: "PD",
+                status: .current,
+                title: input.pageTitle,
+                parentId: input.confluenceParentPageId,
+                atlasDocFormat: releaseNotes)
+            let response = try await atlassianAPI.postReleaseNotes(confluencePage)
+            print("Release notes created (Confluence Page ID: \(response.id))", to: &textOutputStream)
         } else {
             let pullRequests = try await gitHubAPI.pullRequest(owner: input.gitHubOwner, repo: input.gitHubRepo, branchName: currentBranch.name)
             if let pullRequest = pullRequests.first {
@@ -418,9 +433,9 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
         if appCenterReleaseInstallURLs.isEmpty {
             let comment = Atlassian.Comment(
                 body: .init(content: [
-                    .init(content: [
-                        .init(text: comment)
-                    ])
+                    .paragraph(.init([
+                        .text(.init(text: comment))
+                    ]))
                 ])
             )
             try await atlassianAPI.commentOn(ticket: jiraTicketNumber, comment: comment)
@@ -428,26 +443,26 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
             for (appFlavour, installURL) in appCenterReleaseInstallURLs {
                 let comment = Atlassian.Comment(
                     body: .init(content: [
-                        .init(content: [
-                            .init(text: comment)
-                        ]),
-                        .init(content: [
-                            .init(
+                        .paragraph(.init([
+                            .text(.init(text: comment))
+                        ])),
+                        .paragraph(.init([
+                            .text(.init(
                                 text: "Select a flavour to install on your iPhone:",
                                 marks: [.init(
                                     type: .em
                                 )]
-                            )
-                        ]),
-                        .init(content: [
-                            .init(
+                            ))
+                        ])),
+                        .paragraph(.init([
+                            .text(.init(
                                 text: appFlavour.labelIncludingRelease,
                                 marks: [.init(
                                     type: .link,
                                     attrs: .init(href: installURL)
                                 )]
-                            )
-                        ])
+                            ))
+                        ]))
                     ])
                 )
                 try await atlassianAPI.commentOn(ticket: jiraTicketNumber, comment: comment)
