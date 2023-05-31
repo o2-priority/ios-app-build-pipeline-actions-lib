@@ -73,6 +73,7 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
             try await Test(xcodeService: xcodeService, textOutputStream: textOutputStream).test(.init(
                 schemeLocation: input.schemeLocation,
                 scheme: input.schemeForTest,
+                testPlan: input.testPlan,
                 simulatorRuntimes: input.simulatorRuntimes,
                 preferredSimulatorNames: input.preferredSimulatorNames,
                 codeCoverageTarget: "\(input.target).app",

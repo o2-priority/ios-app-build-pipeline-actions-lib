@@ -25,6 +25,7 @@ public final class Test<T>: NSObject where T: RedactableTextOutputStream {
             try await xcodeService.test(
                 schemeLocation: input.schemeLocation,
                 scheme: input.scheme,
+                testPlan: input.testPlan,
                 destination: #""platform=iOS Simulator,id=\#(simulatorInfo.udid.uuidString)""#,
                 simulatorRuntime: simulatorInfo.simulatorRuntime,
                 codeCoverageTarget: produceCodeCoverage ? input.codeCoverageTarget : nil,

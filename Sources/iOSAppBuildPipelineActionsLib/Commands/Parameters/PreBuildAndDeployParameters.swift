@@ -15,6 +15,7 @@ public struct PreBuildAndDeployParameters {
     let simulatorRuntimes: [String]
     let preferredSimulatorNames: [String]
     let schemeForTest: String
+    let testPlan: String?
     let appStoreReleaseConfiguration: String
     let buildNumberOption: BuildNumberOption
     let appConfigurationBuilder: AppConfigurationBuilder
@@ -31,6 +32,7 @@ public struct PreBuildAndDeployParameters {
                 simulatorRuntimes: [String],
                 preferredSimulatorNames: [String],
                 schemeForTest: String,
+                testPlan: String?,
                 appStoreReleaseConfiguration: String,
                 buildNumberOption: BuildNumberOption,
                 appConfigurationBuilder: AppConfigurationBuilder,
@@ -47,6 +49,7 @@ public struct PreBuildAndDeployParameters {
         self.simulatorRuntimes = simulatorRuntimes
         self.preferredSimulatorNames = preferredSimulatorNames
         self.schemeForTest = schemeForTest
+        self.testPlan = testPlan
         self.appStoreReleaseConfiguration = appStoreReleaseConfiguration
         self.buildNumberOption = buildNumberOption
         self.appConfigurationBuilder = appConfigurationBuilder

@@ -232,6 +232,7 @@ final class XcodeServiceTests: XCTestCase {
         try await sut.test(
             schemeLocation: .project(.init("project")),
             scheme: "scheme",
+            testPlan: nil,
             destination: "destination",
             simulatorRuntime: "simulatorRuntime",
             codeCoverageTarget: nil,
@@ -261,6 +262,7 @@ final class XcodeServiceTests: XCTestCase {
         try await sut.test(
             schemeLocation: .project(.init("project")),
             scheme: "scheme",
+            testPlan: nil,
             destination: "destination",
             simulatorRuntime: "simulatorRuntime",
             codeCoverageTarget: nil,

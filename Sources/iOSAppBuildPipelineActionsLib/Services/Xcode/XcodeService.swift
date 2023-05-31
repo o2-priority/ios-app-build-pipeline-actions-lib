@@ -16,6 +16,7 @@ public protocol XcodeServiceProtocol {
     func test<T>(
         schemeLocation: XcodeService.SchemeLocation,
         scheme: String,
+        testPlan: String?,
         destination: String,
         simulatorRuntime: String,
         codeCoverageTarget: String?,
@@ -257,6 +258,7 @@ public final class XcodeService: XcodeServiceProtocol {
     public func test<T>(
         schemeLocation: XcodeService.SchemeLocation,
         scheme: String,
+        testPlan: String?,
         destination: String,
         simulatorRuntime: String,
         codeCoverageTarget: String?,
@@ -268,6 +270,7 @@ public final class XcodeService: XcodeServiceProtocol {
         let xcodebuildTestCommand = try XcodebuildCommandBuilder()
             .action("test", value: schemeLocation.xcodeBuildArgument)
             .argument("scheme", value: scheme)
+            .argument("testPlan", value: testPlan)
             .argument("destination", value: destination)
             .argument("resultBundlePath", value: resultBundlePath)
             .build(xcodebuildPath: xcodebuildPath, xcbeautifyPath: xcbeautifyPath)
@@ -470,8 +473,10 @@ public final class XcodeService: XcodeServiceProtocol {
             return self
         }
         
-        func argument(_ name: String, value: String) -> Self {
-            options.append("-\(name) \(value)")
+        func argument(_ name: String, value: String?) -> Self {
+            if let value {
+                options.append("-\(name) \(value)")
+            }
             return self
         }
         

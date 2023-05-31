@@ -79,6 +79,7 @@ final class BuildAndDeployTests: XCTestCase {
             simulatorRuntimes: ["iOS-15-0", "iOS-16-4"],
             preferredSimulatorNames: ["iPhone 14"],
             schemeForTest: "",
+            testPlan: nil,
             appStoreReleaseConfiguration: "",
             buildNumberOption: .local(1),
             appConfigurationBuilder: appConfigurationBuilder,

@@ -21,7 +21,7 @@ final class MockXcodeService: XcodeServiceProtocol {
         
     }
     
-    func test<T>(schemeLocation: XcodeService.SchemeLocation, scheme: String, destination: String, simulatorRuntime: String, codeCoverageTarget: String?, reportOutputDir: URL, textOutputStream: inout T) async throws where T : TextOutputStream {
+    func test<T>(schemeLocation: XcodeService.SchemeLocation, scheme: String, testPlan: String?, destination: String, simulatorRuntime: String, codeCoverageTarget: String?, reportOutputDir: URL, textOutputStream: inout T) async throws where T : TextOutputStream {
         
     }
     
