@@ -1,4 +1,5 @@
 import Foundation
+import PathKit
 
 @testable import iOSAppBuildPipelineActionsLib
 
@@ -7,6 +8,10 @@ final class MockGitService: GitServiceProtocol {
     var fetchBranchResult: Result<Git.Branch, Error> = .failure(mockError)
     var fetchGitLogResult: Result<String, Error> = .failure(mockError)
     var isWorkingDirectoryCleanResult: Result<Bool, Error> = .failure(mockError)
+    
+    func add(fileName: Path) throws {
+        
+    }
     
     func commit(subject: String, body: String?) throws {
         

@@ -101,6 +101,9 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
         // Set Xcode project target build number
         print("Setting Xcode project build number to \(buildNumber)", to: &textOutputStream)
         try xcodeService.setBuildNumber(buildNumber, xcodeProjPath: input.schemeLocation.path, target: input.target)
+        // Commit new version
+        try gitService.add(fileName: input.schemeLocation.path + Path("project.pbxproj"))
+        try gitService.commit(subject: "v\(appVersion) (\(buildNumber))", body: input.buildJobInfo)
         
         // Prepare release notes
         guard let confluenceSpaceId = environment[kConfluenceSpaceId] else {
@@ -122,9 +125,8 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
             textOutputStream: &textOutputStream
         )
         
-        // Commit new version and push
+        // Push to remote
         let branch = try gitService.fetchCurrentBranch().name
-        try gitService.commit(subject: "v\(appVersion) (\(buildNumber))", body: input.buildJobInfo)
         try gitService.push(remote: "origin", branch: branch)
         
         // Build app configurations

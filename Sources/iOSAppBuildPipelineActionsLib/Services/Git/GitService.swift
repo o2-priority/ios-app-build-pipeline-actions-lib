@@ -3,6 +3,7 @@ import PathKit
 
 public protocol GitServiceProtocol {
     
+    func add(fileName: Path) throws
     func commit(subject: String, body: String?) throws
     func fetchCurrentBranch() throws -> Git.Branch
     func fetchAncestryPathGitLog(comparisonTag: String) throws -> String
@@ -25,6 +26,10 @@ public final class GitService<T>: GitServiceProtocol where T: RedactableTextOutp
     @discardableResult
     public func git(_ command: String) throws -> String {
         try zsh.run(#"git --git-dir="\#(repoDir)/.git" --work-tree=\#(repoDir) \#(command)"#, textOutputStream: &textOutputStream)
+    }
+    
+    public func add(fileName: Path) throws {
+        try git("add \(fileName.string)")
     }
     
     public func commit(subject: String, body: String?) throws {
