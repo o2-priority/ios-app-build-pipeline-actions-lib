@@ -102,7 +102,7 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
         print("Setting Xcode project build number to \(buildNumber)", to: &textOutputStream)
         try xcodeService.setBuildNumber(buildNumber, xcodeProjPath: input.schemeLocation.path, target: input.target)
         // Commit new version
-        try gitService.add(fileName: input.schemeLocation.path + Path("project.pbxproj"))
+        try gitService.add(path: input.schemeLocation.path + Path("project.pbxproj"))
         try gitService.commit(subject: "v\(appVersion) (\(buildNumber))", body: input.buildJobInfo)
         
         // Prepare release notes

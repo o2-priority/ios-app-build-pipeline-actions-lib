@@ -9,7 +9,7 @@ final class MockGitService: GitServiceProtocol {
     var fetchGitLogResult: Result<String, Error> = .failure(mockError)
     var isWorkingDirectoryCleanResult: Result<Bool, Error> = .failure(mockError)
     
-    func add(fileName: Path) throws {
+    func add(path: Path) throws {
         
     }
     
