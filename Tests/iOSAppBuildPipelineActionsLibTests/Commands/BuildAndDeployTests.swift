@@ -98,6 +98,7 @@ final class BuildAndDeployTests: XCTestCase {
             "", "Setting Xcode project build number to 1", "\n",
             "", "Preparing release notes...", "\n",
             "", "No pull request found.", "\n",
+            "", "Bitrise Restore SPM Cache step not detected.", "\n",
             "", "Reading Xcode project app version...", "\n",
             "", "", "\n",
             "", "Reading Xcode project build number...", "\n",
