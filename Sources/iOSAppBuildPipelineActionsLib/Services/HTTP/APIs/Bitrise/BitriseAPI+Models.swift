@@ -57,4 +57,19 @@ extension BitriseAPI {
         let status: String
         let triggeredWorkflow: String
     }
+    
+    public enum SPMCacheHit: String, CustomStringConvertible {
+        case exact, partial, `false`
+        
+        public var description: String {
+            switch self {
+            case .exact:
+                return "Exact cache hit for the first requested cache key."
+            case .partial:
+                return "Cache hit for a key other than the first."
+            case .false:
+                return "No cache hit, nothing was restored."
+            }
+        }
+    }
 }

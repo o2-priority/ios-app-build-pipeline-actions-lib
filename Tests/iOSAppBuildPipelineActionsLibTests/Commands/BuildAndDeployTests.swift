@@ -91,6 +91,7 @@ final class BuildAndDeployTests: XCTestCase {
         try await actions.preBuildAndDeploy(releaseInput, buildAndDeployParameters: releaseInput.buildAndDeployParameters(bundleDisplayName: "", thinning: .none, skipDeploy: true, skipJira: true, skipSlack: true))
         //Then
         XCTAssertEqual(textOutputStream.writes, [
+            "", "Bitrise Restore SPM Cache step not detected.", "\n",
             "", "Testing app...", "\n",
             "", "Reading Xcode project app version...", "\n",
             "", "", "\n",

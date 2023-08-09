@@ -53,6 +53,16 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
     public func preBuildAndDeploy(_ input: PreBuildAndDeployParameters, buildAndDeployParameters: BuildAndDeployParameters) async throws
     {
         let environment = processInfoService.environment
+        let bitriseRestoreSPMCache = "Bitrise Restore SPM Cache"
+        if let bitriseCacheHit = environment["BITRISE_CACHE_HIT"] {
+            if let spmCacheHit = BitriseAPI.SPMCacheHit(rawValue: bitriseCacheHit) {
+                print("\(bitriseRestoreSPMCache) result: \(spmCacheHit.rawValue) (\(spmCacheHit.description)", to: &textOutputStream)
+            } else {
+                print("\(bitriseRestoreSPMCache) result: \(bitriseCacheHit)", to: &textOutputStream)
+            }
+        } else {
+            print("\(bitriseRestoreSPMCache) step not detected.", to: &textOutputStream)
+        }
         guard try gitService.isWorkingDirectoryClean() else {
             throw ReleaseError.gitWorkingDirectoryIsDirty
         }
