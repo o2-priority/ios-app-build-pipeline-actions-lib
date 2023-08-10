@@ -9,6 +9,6 @@ public final class Version<T>: NSObject where T: RedactableTextOutputStream {
     }
     
     public func version() {
-        print("3.2.0-alpha.2", to: &textOutputStream)
+        print("3.2.0", to: &textOutputStream)
     }
 }

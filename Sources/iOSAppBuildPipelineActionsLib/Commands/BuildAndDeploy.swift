@@ -276,7 +276,7 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
         let bitriseRestoreSPMCache = "Bitrise Restore SPM Cache"
         if let bitriseCacheHit = environment["BITRISE_CACHE_HIT"] {
             if let spmCacheHit = BitriseAPI.SPMCacheHit(rawValue: bitriseCacheHit) {
-                print("\(bitriseRestoreSPMCache) result: \(spmCacheHit.rawValue) (\(spmCacheHit.description)", to: &textOutputStream)
+                print("\(bitriseRestoreSPMCache) result: \(spmCacheHit.rawValue) (\(spmCacheHit.description))", to: &textOutputStream)
             } else {
                 print("\(bitriseRestoreSPMCache) result: \(bitriseCacheHit)", to: &textOutputStream)
             }
