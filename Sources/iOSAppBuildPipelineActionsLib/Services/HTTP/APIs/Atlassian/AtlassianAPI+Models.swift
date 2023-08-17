@@ -73,9 +73,12 @@ public struct Atlassian {
         struct JSON2StringError: Error {}
     }
     
+    /**
+     https://developer.atlassian.com/cloud/confluence/rest/v2/api-group-page/#api-pages-post
+     */
     public struct PageResponse: Codable, Equatable {
         
-        var id: Int
+        var id: String
     }
     
     public struct TransitionBody: Codable, Equatable {
