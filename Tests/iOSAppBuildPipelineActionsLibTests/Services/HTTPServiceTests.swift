@@ -118,7 +118,7 @@ final class HTTPServiceTests: XCTestCase {
             XCTFail("Shouldn't have received a success")
         } catch {
             //Then
-            XCTAssertEqual(error as? HTTPServiceForTesting.ResponseError, .init(statusCode: 200, error: HTTPServiceForTesting.ResponseUntypedError(data: "{".data(using: .utf8)!)))
+            XCTAssertEqual(error as? HTTPServiceForTesting.ResponseDecodingError, .init(debugDescription: "The given data was not valid JSON."))
         }
     }
     

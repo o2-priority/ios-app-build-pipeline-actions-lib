@@ -36,6 +36,15 @@ public final class HTTPService<T>: HTTPServiceProtocol where T: RedactableTextOu
         }
     }
     
+    public struct ResponseDecodingError: ErrorConvertible {
+        public var name = "HTTPService.ResponseDecodingError"
+        let debugDescription: String
+        
+        public var errorDescription: String? {
+            return debugDescription
+        }
+    }
+    
     private let urlSession: URLSessionProtocol
     private var textOutputStream: T
     
@@ -76,9 +85,11 @@ public final class HTTPService<T>: HTTPServiceProtocol where T: RedactableTextOu
         }
         switch httpResponse.statusCode {
         case 200...299:
-            if let responseEntity: T = try? decoder.decode(T.self, from: data) {
-                return responseEntity
-            } else {
+            do {
+                return try decoder.decode(T.self, from: data)
+            } catch let error as DecodingError {
+                throw ResponseDecodingError(debugDescription: error.debugDescription)
+            } catch {
                 throw ResponseError(statusCode: httpResponse.statusCode, error: ResponseUntypedError(data: data))
             }
         default:
