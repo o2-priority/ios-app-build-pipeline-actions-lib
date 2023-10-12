@@ -332,6 +332,7 @@ public final class XcodeService: XcodeServiceProtocol {
             .argument("scheme", value: scheme)
             .argument("destination", value: destination)
             .argument("sdk", value: sdk)
+            .argument("allowProvisioningUpdates", value: nil)
             .argument("archivePath", value: archivePath.string)
             .build(xcodebuildPath: xcodebuildPath, xcbeautifyPath: xcbeautifyPath)
         try await zsh.run(xcodebuildArchiveCommand, textOutputStream: &textOutputStream)
