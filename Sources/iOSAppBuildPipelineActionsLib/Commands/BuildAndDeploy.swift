@@ -177,6 +177,9 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
         var appCenterReleaseInstallURLs: [(AppFlavour, URL)] = []
         for appFlavour in input.appFlavours {
             let appConfiguration = try input.appConfigurationBuilder.appConfiguration(flavour: appFlavour, distributionMethod: exportMethod, version: appVersion, buildNumber: buildNumber)
+            
+
+            /*
             print(#"Building app flavour "\#(appFlavour.labelIncludingRelease)"..."#, to: &textOutputStream)
             let destination = #""generic/platform=iOS""#
             try await xcodeService.build(
@@ -223,6 +226,11 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
                 exportOptionsPlist: exportOptionsPlistPath,
                 textOutputStream: &textOutputStream)
             if input.skipDeploy { continue }
+            */
+
+            
+            let exportPath = appConfiguration.exportPath(baseDir: input.buildOutputDir) // Added for Xcode 15 Debug
+            let archivePath = appConfiguration.archivePath(baseDir: input.buildOutputDir) // Added for Xcode 15 Debug
             // Upload app binary to AppCenter or TestFlight
             let ipaPath = exportPath + Path("\(input.bundleDisplayName).ipa")
             switch exportMethod {
@@ -235,9 +243,23 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
                 guard let alToolPassword = environment[kAppLoaderPassword] else {
                     throw ReleaseError.envVarNotFound(kAppLoaderPassword)
                 }
+                print("DEBUG Xcode 15 Issue...")
+                let bitriseIPAPathKey = "BITRISE_IPA_PATH"
+                guard let bitriseIPAPath = environment[bitriseIPAPathKey] else {
+                    throw ReleaseError.envVarNotFound(bitriseIPAPathKey)
+                }
+                let bitriseArchivePathKey = "BITRISE_XCARCHIVE_PATH"
+                guard let bitriseArchivePath = environment[bitriseArchivePathKey] else {
+                    throw ReleaseError.envVarNotFound(bitriseArchivePathKey)
+                }
+                print("DEBUG Xcode 15 Issue...")
+                print("IPA path from custom script :: \(ipaPath)")
+                print("IPA path from Bitrise archive :: \(bitriseIPAPath)")
+                print("Archive path from custom script :: \(archivePath)")
+                print("Archive path from Bitrise archive :: \(bitriseArchivePath)")
                 textOutputStream.redact(string: alToolPassword)
                 try await xcodeService.uploadPackage(
-                    ipaPath: ipaPath,
+                    ipaPath: Path("\(bitriseIPAPath)"),
                     appAppleId: appConfiguration.appAppleId,
                     bundleVersion: "\(buildNumber)",
                     bundleShortVersion: appVersion,
@@ -246,10 +268,18 @@ public final class BuildAndDeploy<T>: NSObject where T: RedactableTextOutputStre
                                        password: alToolPassword)),
                     textOutputStream: &textOutputStream)
             case .adhoc, .enterprise:
+                let bitriseIPAPathKey = "BITRISE_IPA_PATH"
+                guard let bitriseIPAPath = environment[bitriseIPAPathKey] else {
+                    throw ReleaseError.envVarNotFound(bitriseIPAPathKey)
+                }
+                let bitriseArchivePathKey = "BITRISE_XCARCHIVE_PATH"
+                guard let bitriseArchivePath = environment[bitriseArchivePathKey] else {
+                    throw ReleaseError.envVarNotFound(bitriseArchivePathKey)
+                }
                 let installURL = try await appCenterUploadRelease(
                     appName: appConfiguration.appCenterAppName,
-                    archivePath: archivePath,
-                    ipaPath: ipaPath,
+                    archivePath: Path("\(bitriseArchivePath)"),
+                    ipaPath: Path("\(bitriseIPAPath)"),
                     distributionGroups: appConfiguration.appCenterDistributionGroups,
                     environment: environment)
                 appCenterReleaseInstallURLs.append((appFlavour, installURL))
