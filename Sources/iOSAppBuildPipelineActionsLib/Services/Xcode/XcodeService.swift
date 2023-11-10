@@ -189,10 +189,10 @@ public final class XcodeService: XcodeServiceProtocol {
             guard let devices = xcrun_simctl_list.devices[devicesKey], let firstDevice = devices.first else {
                 throw Error.noSimulatorsForRuntime(devicesKey)
             }
-            let devicesByName = Dictionary(uniqueKeysWithValues: zip(devices.map { $0.name }, devices))
+//            let devicesByName = Dictionary(uniqueKeysWithValues: zip(devices.map { $0.name }, devices))
             print("Searching for devices with preferred name(s)...", to: &textOutputStream)
             for preferredSimulatorName in preferredSimulatorNames {
-                if let device = devicesByName[preferredSimulatorName] {
+                if let device = devices.first(where: { $0.name == preferredSimulatorName }) {
                     print("'\(preferredSimulatorName)' found for \(simulatorRuntime).", to: &textOutputStream)
                     return .init(udid: device.udid, simulatorRuntime: simulatorRuntime)
                 } else {
